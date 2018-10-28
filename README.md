@@ -20,14 +20,14 @@ gzip -d cullpdb_pc30_res2.5_R1.0_d181018_chains15535.gz
 *** contains 15535 proteins
 ```
 
-**(B) Download pdb file from protein data bank
+**(B) Download pdb file from protein data bank**
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P1_download_pdb_for_train_cullpdb.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_chains15535 /storage/htc/bdm/Collaboration/Zhiye/SSP/DNSS2/datasets/NewTrainTest_20181027/scripts/  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/orig_pdb 
 
 *** 48 chians failed to find pdb (4Y40, 4YBB,4v4e,4v4m,4v9f,5XLI-B,5XLI-C)
 ```
 
-**(C) Summary the pdb information for dataset
+**(C) Summary the pdb information for dataset**
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N1_download_pdb_for_train_cullpdb_summary.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/cullpdb_pc30_res2.5_R1.0_d181018_chains15535 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/orig_pdb  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed.summary  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed.fasta
 
@@ -35,7 +35,7 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N1_download_pdb_for_tr
 ```
 
 
-**(D) ### Remove proteins with chain-break (Ca-Ca distance > 4 angstrom)
+**(D) ### Remove proteins with chain-break (Ca-Ca distance > 4 angstrom)**
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P3_remove_protein_by_CA_CA_distance.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/orig_pdb /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta 
 
@@ -44,26 +44,26 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P3_remove_protein_by_C
 ** removed protein saved in /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta.log
 ```
 
-**(E) ### Organize fasta directory
+**(E) ### Organize fasta directory**
 ```
 mkdir /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/fasta
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P4_extract_fastas.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta    /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/fasta
 ```
 
-**(F) ### Organize chain directory
+**(F) ### Organize chain directory**
 ```
 mkdir /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/chains/
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N2_copy_file.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/orig_pdb /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/chains/  chn
 ```
 
-**(F) ### Check if all files are ready
+**(F) ### Check if all files are ready**
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N2_check_file_existence.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/fasta/  fasta
 
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N2_check_file_existence.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/chains/  chn
 ```
 
-**(G) ### Statistics
+**(G) ### Statistics**
 ```
 Processed dataset: /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta   ---- 8026 proteins
 
