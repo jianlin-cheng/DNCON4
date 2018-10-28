@@ -81,6 +81,6 @@ Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRva
 ***2. Release Date***
 
 
-**(I) ### One issue to condier**
+**(I) ### One issue to consider**
 
 ***The sequence in 'fasta/' folder is not match the pdb sequence in 'chains/' folder
