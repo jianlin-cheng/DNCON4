@@ -2,7 +2,8 @@
 Designing and benchmarking deep learning architectures for protein contact prediction
 
 
-
+**Attention**
+1. Please don't add folder '/storage/htc/bdm/DNCON4/data' into git log system, it is large
 
 ### Data set construction
 --------------------------------------------------------------------------------------
