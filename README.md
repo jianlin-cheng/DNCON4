@@ -41,7 +41,7 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P3_remove_protein_by_C
 
 *** remaining proteins have 8026, saved in /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta
 
-** removed protein saved in /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta.log
+*** removed protein saved in /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta.log
 ```
 
 **(E) ### Organize fasta directory**
