@@ -27,7 +27,7 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P1_download_pdb_for_tr
 *** 48 chians failed to find pdb (4Y40, 4YBB,4v4e,4v4m,4v9f,5XLI-B,5XLI-C)
 ```
 
-**(C) Summary the pdb information for dataset**
+**(C) Summary of the pdb information for dataset**
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N1_download_pdb_for_train_cullpdb_summary.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/cullpdb_pc30_res2.5_R1.0_d181018_chains15535 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/orig_pdb  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed.summary  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed.fasta
 
