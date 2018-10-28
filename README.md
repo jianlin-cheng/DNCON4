@@ -63,7 +63,7 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N2_check_file_existenc
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N2_check_file_existence.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/chains/  chn
 ```
 
-**(G) ### Statistics**
+**(G) ### Statistics (8026 proteins)**
 ```
 Processed dataset: /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta   ---- 8026 proteins
 
@@ -71,3 +71,6 @@ Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRva
 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed.summary
 ```
 
+**(H) ### Further criteria **
+***1. Length***
+***2. Release Date***
