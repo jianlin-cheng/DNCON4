@@ -71,7 +71,7 @@ Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRva
 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed.summary
 ```
 
-**(H) ### Further criteria **
+**(H) ### Further criteria**
 
 ***1. Length***
 
