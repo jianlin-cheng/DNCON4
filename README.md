@@ -80,6 +80,9 @@ Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRva
 
 ***2. Release Date***
 
+***3. Disordered residues (refer to dncon paper)***
+
+
 
 **(I) ### One issue to consider**
 
