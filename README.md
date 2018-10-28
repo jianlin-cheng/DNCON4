@@ -65,7 +65,9 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N2_check_file_existenc
 
 **(G) ### Statistics (8026 proteins)**
 ```
-Processed dataset: /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta   ---- 8026 proteins
+Processed dataset
+/storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed-CACA4.fasta   
+---- 8026 proteins
 
 Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRvalue, ReleaseDate
 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc30_res2.5_R1.0_d181018_processed.summary
