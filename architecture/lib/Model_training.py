@@ -294,7 +294,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast(data_all_dict_padding,testda
                 DNCON4_CNN.compile(loss="binary_crossentropy", metrics=['accuracy'], optimizer=opt)
             #DNCON4_CNN.fit([train_1D_fea_all_array,train_2D_fea_all_array], train_targets, batch_size= batch_size_train, epochs=epoch_inside,  validation_data=([test_1D_fea_all_array,test_2D_fea_all_array], test_label_all_array), verbose=1)
             if key < 150 and epoch ==0:
-              DNCON4_CNN.fit([train_1D_fea_all_array,train_2D_fea_all_array], train_targets, batch_size= 40, epochs=epoch_inside, verbose=1)
+              DNCON4_CNN.fit([train_1D_fea_all_array,train_2D_fea_all_array], train_targets, batch_size= batch_size_train_new, epochs=40, verbose=1)
             else:
               DNCON4_CNN.fit([train_1D_fea_all_array,train_2D_fea_all_array], train_targets, batch_size= batch_size_train_new, epochs=epoch_inside, verbose=1)
             DNCON4_CNN.save_weights(model_weight_out)
