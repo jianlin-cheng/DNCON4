@@ -59,6 +59,7 @@ foreach(@content)
     $seq = "";
     $res_id=0;
     $prev = -1;
+    $found=0;
     foreach (@lines_PDB) {
     	next if $_ !~ m/^ATOM/;
       $this_rnum = parse_pdb_row($_,"rnum");
@@ -84,6 +85,7 @@ foreach(@content)
         {
         	$res = "X"; 
         	print "$file_PDB: resudie is unknown, shouldn't happen.\n"; 
+          $found = 1;
           last;
         }
 				$seq .= $res; 
@@ -105,7 +107,6 @@ foreach(@content)
       #print "The fasta sequence not match pdb seq in $file_PDB\n$line\n$seq\n\n";
       #next;
     #}
-    $found=0;
     for($res_id=2;$res_id<=length($seq);$res_id++)
     {
         $pos1 = $ca_hash{$res_id-1};
