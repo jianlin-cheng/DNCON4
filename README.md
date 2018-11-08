@@ -88,5 +88,17 @@ Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRva
 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4-examined.summary
 ```
 
+**(H) ### organize the data for training 
+
+```
+cd /storage/htc/bdm/DNCON4/data/cullpdb_dataset
+mkdir  fasta dssp chains lists
+cp /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4-examined.fasta  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta
+cp /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4-examined.summary /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta.info
+
+
+perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P8_summarize_data_files.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/ /storage/htc/bdm/DNCON4/data/cullpdb_dataset
+```
+
 
 
