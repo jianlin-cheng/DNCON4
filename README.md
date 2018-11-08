@@ -59,7 +59,7 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P4_get_seq_from_pdb_ba
 ```
 
 
-**(F) ### convert pdb file to dssp file 
+**(F) ### convert pdb file to dssp file**
 
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P5_pdb2dssp_bylist.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/scripts/dssp /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/chains  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/dssp/  /scratch/jh7x3/tools/dssp
@@ -77,7 +77,7 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P6_check_dssp_pdb_fast
 ```
 
 
-**(G) ### Statistics (6084 proteins)**
+**(H) ### Statistics (6084 proteins)**
 ```
 Processed dataset
 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4-examined.fasta    
@@ -88,7 +88,7 @@ Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRva
 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4-examined.summary
 ```
 
-**(H) ### organize the data for training**
+**(I) ### organize the data for training**
 
 ```
 cd /storage/htc/bdm/DNCON4/data/cullpdb_dataset
@@ -100,7 +100,7 @@ cp /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cull
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P8_summarize_data_files.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/ /storage/htc/bdm/DNCON4/data/cullpdb_dataset
 ```
 
-**(I) ### Select proteins released before 2016.05.01 as training and the rest as blind test**
+**(J) ### Select proteins released before 2016.05.01 as training and the rest as blind test**
 
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P9_construct_training_testing.pl  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta.info  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/train-val.lst /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/blind-test.lst 
