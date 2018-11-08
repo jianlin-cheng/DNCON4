@@ -50,10 +50,10 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P3_remove_protein_by_C
 
 **(E) ### Reindex pdb and Convert chain seq 2 fasta format**
 
+```
 mkdir /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/chains
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P4_reindex_pdb_batch.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/orig_pdb /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/chains/  chn
 
-```
 mkdir /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/fasta
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P4_get_seq_from_pdb_batch.pl  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4.fasta    /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/chains /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/fasta chn
 ```
@@ -88,7 +88,7 @@ Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRva
 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4-examined.summary
 ```
 
-**(H) ### organize the data for training 
+**(H) ### organize the data for training**
 
 ```
 cd /storage/htc/bdm/DNCON4/data/cullpdb_dataset
@@ -100,7 +100,7 @@ cp /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cull
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P8_summarize_data_files.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/ /storage/htc/bdm/DNCON4/data/cullpdb_dataset
 ```
 
-**(I) ### Select proteins released before 2016.05.01 as training and the rest as blind test
+**(I) ### Select proteins released before 2016.05.01 as training and the rest as blind test**
 
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P9_construct_training_testing.pl  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta.info  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/train-val.lst /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/blind-test.lst 
