@@ -10,7 +10,7 @@ Designing and benchmarking deep learning architectures for protein contact predi
 
 **(A) Download cullpdb list for standard training (pairwise-similarity: 25%, Resolution: <2.5, R: <1.0)**  
 ```
-*** Details: http://dunbrack.fccc.edu/Guoli/culledpdb_hh/
+*** Details: http://dunbrack.fccc.edu/PISCES.php
 
 cd /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/
 wget http://dunbrack.fccc.edu/Guoli/culledpdb_hh/cullpdb_pc25_res2.5_R1.0_d181025_chains12572.gz
