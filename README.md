@@ -39,7 +39,7 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/N1_download_pdb_for_tr
 ```
 
 
-**(D) ### Remove proteins with chain-break (Ca-Ca distance > 4 angstrom) and protein contains non-standard amino acid**
+**(D) ### Remove proteins with chain-break (Ca-Ca distance > 4 angstrom) and proteins contain non-standard amino acid**
 ```
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P3_remove_protein_by_CA_CA_distance.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/orig_pdb /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4.fasta 
 
