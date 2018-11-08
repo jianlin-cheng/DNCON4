@@ -77,11 +77,11 @@ perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P6_check_dssp_pdb_fast
 ```
 
 
-**(G) ### Statistics (6085 proteins)**
+**(G) ### Statistics (6084 proteins)**
 ```
 Processed dataset
 /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cullpdb_pc25_res2.5_R1.0_d181018_processed-CACA4-examined.fasta    
----- 6085 proteins
+---- 6084 proteins
 
 
 Information of proteins, including PDBcode, Resolution, X_ray, R-factor, FreeRvalue, ReleaseDate
