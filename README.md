@@ -100,5 +100,19 @@ cp /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/data_processing/cull
 perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P8_summarize_data_files.pl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/source_data/ /storage/htc/bdm/DNCON4/data/cullpdb_dataset
 ```
 
+**(I) ### Select proteins released before 2016.05.01 as training and the rest as blind test
+
+```
+perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P9_construct_training_testing.pl  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta.info  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/all.fasta /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/train-val.lst /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/blind-test.lst 
+
+
+perl /storage/htc/bdm/DNCON4/data/cullpdb_dataset/scripts/P10_get_validation_from_train.pl  /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/train-val.lst /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/train.lst /storage/htc/bdm/DNCON4/data/cullpdb_dataset/lists/validation.lst
+
+
+train: 4239
+validation: 470
+test: 1306
+```
+
 
 
