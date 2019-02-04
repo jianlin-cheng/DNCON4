@@ -14,8 +14,17 @@ import sys
 import random
 import keras.backend as K
 epsilon = K.epsilon()
-from Data_loading import getX_1D_2D,getX_2D_format
+# from Data_loading import getX_1D_2D,getX_2D_format
 
+def chkdirs(fn):
+  dn = os.path.dirname(fn)
+  if not os.path.exists(dn): os.makedirs(dn)
+
+def chkfiles(fn):
+  if os.path.exists(fn):
+    return True 
+  else:
+    return False
 
 def build_dataset_dictionaries(path_lists):
   length_dict = {}
@@ -57,12 +66,57 @@ def build_dataset_dictionaries(path_lists):
   print ('')
   return (tr_l, tr_n, tr_e, te_l, te_n, te_e)
 
+def build_dataset_dictionaries_train(path_lists):
+  length_dict = {}
+  with open(path_lists + 'L.txt') as f:
+    for line in f:
+      cols = line.strip().split()
+      length_dict[cols[0]] = int(cols[1])
+  tr_l = {}
+  with open(path_lists + 'train.lst') as f:
+    for line in f:
+      tr_l[line.strip()] = length_dict[line.strip()]
+  print ('Data counts:')
+  print ('Total : ' + str(len(length_dict)))
+  print ('Train : ' + str(len(tr_l)))
+  return (tr_l)
+
+def build_dataset_dictionaries_test(path_lists):
+  length_dict = {}
+  with open(path_lists + 'L.txt') as f:
+    for line in f:
+      cols = line.strip().split()
+      length_dict[cols[0]] = int(cols[1])
+  te_l = {}
+  with open(path_lists + 'test.lst') as f:
+    for line in f:
+      te_l[line.strip()] = length_dict[line.strip()]
+  print ('Data counts:')
+  print ('Total : ' + str(len(length_dict)))
+  print ('Test  : ' + str(len(te_l)))
+  return (te_l)
+
+def build_dataset_dictionaries_sample(path_lists):
+  length_dict = {}
+  with open(path_lists + 'L.txt') as f:
+    for line in f:
+      cols = line.strip().split()
+      length_dict[cols[0]] = int(cols[1])
+  ex_l = {}
+  with open(path_lists + 'sample.lst') as f:
+    for line in f:
+      ex_l[line.strip()] = length_dict[line.strip()]
+  # print ('Data counts:')
+  # print ('Total : ' + str(len(length_dict)))
+  # print ('Test  : ' + str(len(te_l)))
+  return (ex_l)
 
 def subset_pdb_dict(dict, minL, maxL, count, randomize_flag):
   selected = {}
   # return a dict with random 'X' PDBs
   if (randomize_flag == 'random'):
-    pdbs = dict.keys()
+    pdbs = list(dict.keys())
+    sys.stdout.flush()
     random.shuffle(pdbs)
     i = 0
     for pdb in pdbs:
@@ -82,6 +136,98 @@ def subset_pdb_dict(dict, minL, maxL, count, randomize_flag):
           break
   return selected
 
+def load_sample_data_2D(data_list, feature_dir,Interval,seq_end, min_seq_sep,dist_string, reject_fea_file='None'):
+  import pickle
+  data_all_dict = dict()
+  print("######### Loading data\n\t",end='')
+  accept_list = []
+  notxt_flag = True
+  if reject_fea_file != 'None':
+    with open(reject_fea_file) as f:
+      for line in f:
+        if line.startswith('#'):
+          feature_name = line.strip()
+          feature_name = feature_name[0:]
+          accept_list.append(feature_name)
+  ex_l = build_dataset_dictionaries_sample(data_list)
+  sample_dict = subset_pdb_dict(ex_l, 0, 500, 5000, 'random') #can be random ordered
+  sample_name = list(sample_dict.keys())
+  sample_lens = list(sample_dict.values())
+  for i in range(0,len(sample_name)):
+    pdb_name = sample_name[i]
+    pdb_lens = sample_lens[i]
+    print(pdb_name, "..",end='')
+    
+    featurefile = feature_dir + '/X-' + pdb_name + '.txt'
+    if ((len(accept_list) == 1 and ('# cov' not in accept_list and '# plm' not in accept_list)) or 
+          (len(accept_list) == 2 and ('# cov' not in accept_list or '# plm' not in accept_list)) or (len(accept_list) > 2)):
+      notxt_flag = False
+      if not os.path.isfile(featurefile):
+                  print("feature file not exists: ",featurefile, " pass!")
+                  continue     
+    cov = feature_dir + '/' + pdb_name + '.cov'
+    if '# cov' in accept_list:
+      if not os.path.isfile(cov):
+                  print("Cov Matrix file not exists: ",cov, " pass!")
+                  continue        
+    plm = feature_dir + '/' + pdb_name + '.plm'
+    if '# plm' in accept_list:
+      if not os.path.isfile(plm):
+                  print("plm matrix file not exists: ",plm, " pass!")
+                  continue       
+    targetfile = feature_dir + '/Y' + str(dist_string) + '-'+ pdb_name + '.txt'
+    if not os.path.isfile(targetfile):
+                print("target file not exists: ",targetfile, " pass!")
+                continue                                 
+      
+    ### load the data
+    (featuredata,feature_index_all_dict) = getX_2D_format(featurefile, cov, plm, accept_list, pdb_lens, notxt_flag)
+    print("\n######",len(featuredata))
+    print("\n######",len(feature_index_all_dict)) 
+    feature_2D_all=[]
+    for key in sorted(feature_index_all_dict.keys()):
+        featurename = feature_index_all_dict[key]
+        feature = featuredata[key]
+        feature = np.asarray(feature)
+        #print("keys: ", key, " featurename: ",featurename, " feature_shape:", feature.shape)
+        
+        if feature.shape[0] == feature.shape[1]:
+          feature_2D_all.append(feature)
+        else:
+          print("Wrong dimension")
+          
+    fea_len = feature_2D_all[0].shape[0]
+
+    print("######",len(feature_2D_all))
+    print("######",fea_len)
+    #print("Checking length ",fea_len)
+    for ran in range(0,seq_end,Interval):
+        start_ran = ran
+        end_ran = ran + Interval
+        if end_ran > seq_end:
+            end_ran = seq_end 
+        if fea_len >start_ran and   fea_len <= end_ran:
+            
+            F = len(feature_2D_all) 
+            X = np.zeros((end_ran, end_ran, F))
+            for m in range (0, F):
+              X[0:fea_len, 0:fea_len, m] = feature_2D_all[m]
+                    
+            l_max = end_ran
+            y = getY(targetfile, min_seq_sep, l_max)
+            if (l_max * l_max != len(y)):
+              print ('Error!! y does not have L * L feature values!!')
+              sys.exit()
+            
+            fea_len_new=end_ran
+            if fea_len_new in data_all_dict:
+                data_all_dict[fea_len_new].append([y,X])
+            else:
+                data_all_dict[fea_len_new]=[]
+                data_all_dict[fea_len_new].append([y,X])             
+        else:
+            continue
+  return data_all_dict
 
 def get_y_from_this_list(selected_ids, path, min_seq_sep, l_max, y_dist):
   xcount = len(selected_ids)
@@ -118,6 +264,10 @@ def getY(true_file, min_seq_sep, l_max):
       if line.startswith('#'):
         continue
       this_line = line.strip().split()
+      if len(this_line) != L:
+        print("\nThis_line = %i, L = %i, Lable file %s error!\n"%(len(this_line), L, true_file))
+        Y = [0]
+        return  Y
       Y[i, 0:L] = np.asarray(this_line)
       i = i + 1
   for p in range(0,L):
@@ -127,7 +277,6 @@ def getY(true_file, min_seq_sep, l_max):
         Y[p][q] = 0
   Y = Y.flatten()
   return Y
-
 
 def get_x_from_this_list(selected_ids, path, l_max):
   xcount = len(selected_ids)
@@ -148,8 +297,150 @@ def get_x_from_this_list(selected_ids, path, l_max):
     i = i + 1
   return X
 
-
-
+def getX_1D_2D(feature_file, cov, plm, reject_fea_file='None'):
+  # calcualte the length of the protein (the first feature)
+  reject_list = []
+  reject_list.append('# PSSM')
+  reject_list.append('# AA composition')
+  #print("Checking ",reject_fea_file)
+  if reject_fea_file != 'None':
+    #print("Loading ",reject_fea_file)
+    with open(reject_fea_file) as f:
+      for line in f:
+        if line.startswith('-'):
+          feature_name = line.strip()
+          feature_name = feature_name[1:]
+          #print("Removing ",feature_name)
+          reject_list.append(feature_name)
+  L = 0
+  with open(feature_file) as f:
+    for line in f:
+      if line.startswith('#'):
+        continue
+      L = line.strip().split()
+      L = int(round(math.exp(float(L[0]))))
+      break
+  Data = []
+  feature_all_dict = dict()
+  feature_index_all_dict = dict() # to make sure the feature are same ordered 
+  feature_name='None'
+  feature_index=0;
+  with open(feature_file) as f:
+    accept_flag = 1
+    for line in f:
+      if line.startswith('#'):
+        if line.strip() in reject_list:
+          accept_flag = 0
+        else:
+          accept_flag = 1
+        feature_name = line.strip()
+        continue
+      if accept_flag == 0:
+        continue
+      
+      if line.startswith('#'):
+        continue
+      this_line = line.strip().split()
+      if len(this_line) == 0:
+        continue
+      if len(this_line) == 1:
+        # 0D feature
+        feature_namenew = feature_name + ' 0D'
+        feature_index +=1
+        if feature_index in feature_index_all_dict:
+          print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          exit;
+        else:
+          feature_index_all_dict[feature_index] = feature_namenew
+        
+        feature0D = np.zeros((1, L))
+        feature0D[0, :] = float(this_line[0])
+        if feature_index in feature_all_dict:
+          print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          exit;
+        else:
+          feature_all_dict[feature_index] = feature0D
+      elif len(this_line) == L:
+        # 1D feature
+        feature1D = np.zeros((1, L))
+        feature_namenew = feature_name + ' 1D'
+        feature_index +=1
+        if feature_index in feature_index_all_dict:
+          print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          exit;
+        else:
+          feature_index_all_dict[feature_index] = feature_namenew
+        
+        for i in range (0, L):
+          feature1D[0, i] = float(this_line[i])
+        if feature_index in feature_all_dict:
+          print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          exit;
+        else:
+          feature_all_dict[feature_index] = feature1D
+      elif len(this_line) == L * L:
+        # 2D feature
+        feature2D = np.asarray(this_line).reshape(L, L)
+        feature_namenew = feature_name + ' 2D'
+        feature_index +=1
+        if feature_index in feature_index_all_dict:
+          print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          exit;
+        else:
+          feature_index_all_dict[feature_index] = feature_namenew
+        if feature_index in feature_all_dict:
+          print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          exit;
+        else:
+          feature_all_dict[feature_index] = feature2D
+      else:
+        print (line)
+        print ('Error!! Unknown length of feature in !!' + feature_file)
+        print ('Expected length 0, ' + str(L) + ', or ' + str (L*L) + ' - Found ' + str(len(this_line)))
+        sys.exit()
+  if '# cov' not in reject_list:
+      cov_rawdata = np.fromfile(cov, dtype=np.float32)
+      length = int(math.sqrt(cov_rawdata.shape[0]/21/21))
+      if length != L:
+          print("Bad Alignment, pls check!")
+          exit;
+      inputs_cov = cov_rawdata.reshape(1,441,L,L)
+      for i in range(441):
+          feature2D = inputs_cov[0][i]
+          feature_namenew = '# Covariance Matrix '+str(i+1)+ ' 2D'
+          feature_index +=1
+          if feature_index in feature_index_all_dict:
+              print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+              exit;
+          else:
+              feature_index_all_dict[feature_index] = feature_namenew
+          if feature_index in feature_all_dict:
+              print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+              exit;
+          else:
+              feature_all_dict[feature_index] = feature2D
+  if '# plm' not in reject_list:
+    plm_rawdata = np.fromfile(plm, dtype=np.float32)
+    length = int(math.sqrt(plm_rawdata.shape[0]/21/21))
+    if length != L:
+        print("Bad Alignment, pls check!")
+        exit;
+    inputs_plm = plm_rawdata.reshape(1,441,L,L)
+    for i in range(441):
+        feature2D = inputs_plm[0][i]
+        feature_namenew = '# Pseudo_Likelihood Maximization '+str(i+1)+ ' 2D'
+        feature_index +=1
+        if feature_index in feature_index_all_dict:
+            print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+            exit;
+        else:
+            feature_index_all_dict[feature_index] = feature_namenew
+        if feature_index in feature_all_dict:
+            print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+            exit;
+        else:
+            feature_all_dict[feature_index] = feature2D
+  return (feature_all_dict,feature_index_all_dict)
 
 def get_x_1D_2D_from_this_list(selected_ids, feature_dir, l_max,dist_string, reject_fea_file='None'):
   xcount = len(selected_ids)
@@ -157,10 +448,12 @@ def get_x_1D_2D_from_this_list(selected_ids, feature_dir, l_max,dist_string, rej
   for pdb in selected_ids:
     sample_pdb = pdb
     break
-  featurefile =feature_dir + 'X-'  + sample_pdb + '.txt'
+  featurefile = feature_dir + 'X-'  + sample_pdb + '.txt'
+  cov = feature_dir + '/'  + sample_pdb + '.cov'
+  plm = feature_dir + '/'  + sample_pdb + '.plm'
   #print(featurefile)
   ### load the data
-  (featuredata,feature_index_all_dict) = getX_1D_2D(featurefile, reject_fea_file=reject_fea_file)     
+  (featuredata,feature_index_all_dict) = getX_1D_2D(featurefile, cov, plm, reject_fea_file=reject_fea_file)     
   ### merge 1D data to L*m
   ### merge 2D data to  L*L*n
   feature_1D_all=[]
@@ -205,15 +498,20 @@ def get_x_1D_2D_from_this_list(selected_ids, feature_dir, l_max,dist_string, rej
   for pdb_name in sorted(selected_ids):
       print(pdb_name, "..",end='')
       featurefile = feature_dir + '/X-' + pdb_name + '.txt'
+      cov = feature_dir + '/' + pdb_name + '.cov'
       if not os.path.isfile(featurefile):
                   print("feature file not exists: ",featurefile, " pass!")
-                  continue         
+                  continue        
+      plm = feature_dir + '/' + pdb_name + '.plm'
+      if not os.path.isfile(plm):
+                  print("plm matrix file not exists: ",plm, " pass!")
+                  continue          
       targetfile = feature_dir + '/Y' + str(dist_string) + '-'+ pdb_name + '.txt'
       if not os.path.isfile(targetfile):
                   print("target file not exists: ",targetfile, " pass!")
                   continue
       ### load the data
-      (featuredata,feature_index_all_dict) = getX_1D_2D(featurefile, reject_fea_file=reject_fea_file)     
+      (featuredata,feature_index_all_dict) = getX_1D_2D(featurefile, cov, plm, reject_fea_file=reject_fea_file)     
       ### merge 1D data to L*m
       ### merge 2D data to  L*L*n
       feature_1D_all=[]
@@ -278,17 +576,209 @@ def get_x_1D_2D_from_this_list(selected_ids, feature_dir, l_max,dist_string, rej
       pdb_indx = pdb_indx + 1
   return (X_1D,X_2D)
 
+def getX_2D_format(feature_file, cov, plm, accept_list, pdb_len = 0, notxt_flag = True):
+  # calcualte the length of the protein (the first feature)
 
-def get_x_2D_from_this_list(selected_ids, feature_dir, l_max,dist_string):
+  L = 0
+  Data = []
+  feature_all_dict = dict()
+  feature_index_all_dict = dict() # to make sure the feature are same ordered 
+  feature_name='None'
+  feature_index=0
+  # print(reject_list)
+  if notxt_flag == True:
+    L = pdb_len
+  else:
+    with open(feature_file) as f:
+      for line in f:
+        if line.startswith('#'):
+          continue
+        L = line.strip().split()
+        L = int(round(math.exp(float(L[0]))))
+        break
+    with open(feature_file) as f:
+      accept_flag = 1
+      for line in f:
+        if line.startswith('#'):
+          if line.strip() not in accept_list:
+            accept_flag = 0
+          else:
+            accept_flag = 1
+          feature_name = line.strip()
+          continue
+        if accept_flag == 0:
+          continue
+        
+        if line.startswith('#'):
+          continue
+        this_line = line.strip().split()
+        if len(this_line) == 0:
+          continue
+        if len(this_line) == 1:
+          # 0D feature
+          continue
+          # feature_namenew = feature_name + ' 0D'
+          # feature_index +=1
+          # if feature_index in feature_index_all_dict:
+          #   print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          #   exit;
+          # else:
+          #   feature_index_all_dict[feature_index] = feature_namenew
+
+          # feature0D = np.zeros((L, L))
+          # feature0D[:, :] = float(this_line[0])
+          # #feature0D = np.zeros((1, L))
+          # #feature0D[0, :] = float(this_line[0])
+          
+          # if feature_index in feature_all_dict:
+          #   print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          #   exit;
+          # else:
+          #   feature_all_dict[feature_index] = feature0D
+        elif len(this_line) == L:
+          # 1D feature
+          continue
+          # feature1D = np.zeros((1, L))
+
+          # # 1D feature
+          # feature1D1 = np.zeros((L, L))
+          # feature1D2 = np.zeros((L, L))
+          # for i in range (0, L):
+          #   feature1D1[i, :] = float(this_line[i])
+          #   feature1D2[:, i] = float(this_line[i])
+          
+          # ### load feature 1
+          # feature_index +=1
+          # feature_namenew = feature_name + ' 1D1'
+          # if feature_index in feature_index_all_dict:
+          #   print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          #   exit;
+          # else:
+          #   feature_index_all_dict[feature_index] = feature_namenew
+          
+          # if feature_index in feature_all_dict:
+          #   print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          #   exit;
+          # else:
+          #   feature_all_dict[feature_index] = feature1D1
+          
+          # ### load feature 2
+          # feature_index +=1
+          # feature_namenew = feature_name + ' 1D2'
+          # if feature_index in feature_index_all_dict:
+          #   print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          #   exit;
+          # else:
+          #   feature_index_all_dict[feature_index] = feature_namenew
+
+          # if feature_index in feature_all_dict:
+          #   print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+          #   exit;
+          # else:
+          #   feature_all_dict[feature_index] = feature1D2
+        elif len(this_line) == L * L:
+          # 2D feature
+          feature2D = np.asarray(this_line).reshape(L, L)
+          feature_index +=1
+          feature_namenew = feature_name + ' 2D'
+          if feature_index in feature_index_all_dict:
+            print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+            exit
+          else:
+            feature_index_all_dict[feature_index] = feature_namenew
+          
+          if feature_index in feature_all_dict:
+            print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+            exit
+          else:
+            feature_all_dict[feature_index] = feature2D
+        else:
+          print (line)
+          print ('Error!! Unknown length of feature in !!' + feature_file)
+          print ('Expected length 0, ' + str(L) + ', or ' + str (L*L) + ' - Found ' + str(len(this_line)))
+          sys.exit()
+  #Add Covariance Matrix 
+  if '# cov' in accept_list:   
+      cov_rawdata = np.fromfile(cov, dtype=np.float32)
+      length = int(math.sqrt(cov_rawdata.shape[0]/21/21))
+      if length != L:
+          print("Bad Alignment, pls check!")
+          sys.exit()
+      inputs_cov = cov_rawdata.reshape(1,441,L,L) #????
+      for i in range(441):
+          feature2D = inputs_cov[0][i]
+          feature_namenew = '# Covariance Matrix '+str(i+1)+ ' 2D'
+          feature_index +=1
+          if feature_index in feature_index_all_dict:
+              print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+              sys.exit()
+          else:
+              feature_index_all_dict[feature_index] = feature_namenew
+          if feature_index in feature_all_dict:
+              print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+              sys.exit()
+          else:
+              feature_all_dict[feature_index] = feature2D
+  #Add Pseudo_Likelihood Maximization
+  if '# plm' in accept_list:  
+      plm_rawdata = np.fromfile(plm, dtype=np.float32)
+      length = int(math.sqrt(plm_rawdata.shape[0]/21/21))
+      if length != L:
+          print("Bad Alignment, pls check!")
+          sys.exit()
+      inputs_plm = plm_rawdata.reshape(1,441,L,L)
+      for i in range(441):
+          feature2D = inputs_plm[0][i]
+          feature_namenew = '# Pseudo_Likelihood Maximization '+str(i+1)+ ' 2D'
+          feature_index +=1
+          if feature_index in feature_index_all_dict:
+              print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+              sys.exit()
+          else:
+              feature_index_all_dict[feature_index] = feature_namenew
+          if feature_index in feature_all_dict:
+              print("Duplicate feature name ",feature_namenew, " in file ",feature_file)
+              sys.exit()
+          else:
+              feature_all_dict[feature_index] = feature2D
+  return (feature_all_dict,feature_index_all_dict)
+
+def get_x_2D_from_this_list(selected_ids, feature_dir, l_max,dist_string, reject_fea_file='None', pdb_len = 0):
   xcount = len(selected_ids)
   sample_pdb = ''
   for pdb in selected_ids:
     sample_pdb = pdb
     break
+  accept_list = []
+  notxt_flag = True
+  if reject_fea_file != 'None':
+    with open(reject_fea_file) as f:
+      for line in f:
+        if line.startswith('#'):
+          feature_name = line.strip()
+          feature_name = feature_name[0:]
+          accept_list.append(feature_name)
+
   featurefile =feature_dir + 'X-'  + sample_pdb + '.txt'
+  cov =feature_dir + '/'  + sample_pdb + '.cov'
+  plm =feature_dir + '/'  + sample_pdb + '.plm'
   print(featurefile)
-  ### load the data
-  (featuredata,feature_index_all_dict) = getX_2D_format(featurefile, reject_fea_file='None')     
+  if ((len(accept_list) == 1 and ('# cov' not in accept_list and '# plm' not in accept_list)) or 
+        (len(accept_list) == 2 and ('# cov' not in accept_list or '# plm' not in accept_list)) or (len(accept_list) > 2)):
+    notxt_flag = False
+    # print
+    if not os.path.isfile(featurefile):
+                print("feature file not exists: ",featurefile, " pass!")   
+  if '# cov' in accept_list:
+    if not os.path.isfile(cov):
+                print("Cov Matrix file not exists: ",cov, " pass!")
+  if '# plm' in accept_list:
+    if not os.path.isfile(plm):
+                print("plm matrix file not exists: ",plm, " pass!")
+
+  (featuredata,feature_index_all_dict) = getX_2D_format(featurefile, cov, plm, accept_list, pdb_len, notxt_flag)  
+
+  
   ### merge 1D data to L*m
   ### merge 2D data to  L*L*n
   feature_2D_all=[]
@@ -303,25 +793,35 @@ def get_x_2D_from_this_list(selected_ids, feature_dir, l_max,dist_string):
       else:
         print("Wrong dimension")
   
-  fea_len = feature_2D_all[0].shape[0]
+  # fea_len = feature_2D_all[0].shape[0]
   F_2D = len(feature_2D_all)
-  feature_2D_all = np.asarray(feature_2D_all)
+  # feature_2D_all = np.asarray(feature_2D_all)
   #print(feature_2D_all.shape)
   print("Total ",F_2D, " 2D features")
   X_2D = np.zeros((xcount, l_max, l_max, F_2D))
   pdb_indx = 0
   for pdb_name in sorted(selected_ids):
       print(pdb_name, "..",end='')
+
       featurefile = feature_dir + '/X-' + pdb_name + '.txt'
-      if not os.path.isfile(featurefile):
-                  print("feature file not exists: ",featurefile, " pass!")
-                  continue         
-      targetfile = feature_dir + '/Y' + str(dist_string) + '-'+ pdb_name + '.txt'
-      if not os.path.isfile(targetfile):
-                  print("target file not exists: ",targetfile, " pass!")
-                  continue
+      if ((len(accept_list) == 1 and ('# cov' not in accept_list and '# plm' not in accept_list)) or 
+        (len(accept_list) == 2 and ('# cov' not in accept_list or '# plm' not in accept_list)) or (len(accept_list) > 2)):
+        notxt_flag = False
+        if not os.path.isfile(featurefile):
+                    print("feature file not exists: ",featurefile, " pass!")
+                    continue   
+      cov = feature_dir + '/' + pdb_name + '.cov'  
+      if '# cov' in accept_list:
+        if not os.path.isfile(cov):
+                    print("Cov Matrix file not exists: ",cov, " pass!")
+                    continue     
+      plm = feature_dir + '/' + pdb_name + '.plm'   
+      if '# plm' in accept_list:
+        if not os.path.isfile(plm):
+                    print("plm matrix file not exists: ",plm, " pass!")
+                    continue 
       ### load the data
-      (featuredata,feature_index_all_dict) = getX_2D_format(featurefile, reject_fea_file='None')     
+      (featuredata,feature_index_all_dict) = getX_2D_format(featurefile, cov, plm, accept_list, pdb_len, notxt_flag)     
       ### merge 1D data to L*m
       ### merge 2D data to  L*L*n
       feature_2D_all=[]
@@ -349,8 +849,8 @@ def get_x_2D_from_this_list(selected_ids, feature_dir, l_max,dist_string):
         exit;
 
       ### expand to lmax
-      if feature_2D_all[0].shape[0] < l_max:
-        print("extend to lmax: ",feature_2D_all.shape)
+      if feature_2D_all[0].shape[0] <= l_max:
+        # print("extend to lmax: ",feature_2D_all.shape)
         L = feature_2D_all.shape[0]
         F = feature_2D_all.shape[2]
         X_tmp = np.zeros((l_max, l_max, F))
@@ -374,6 +874,20 @@ def evaluate_prediction (dict_l, dict_n, dict_e, P, Y, min_seq_sep):
   P3L2 = ceil_top_xL_to_one(dict_l, P2, Y, 0.5)
   P31L = ceil_top_xL_to_one(dict_l, P2, Y, 1)
   (list_acc_l5, list_acc_l2, list_acc_1l,avg_pc_l5,avg_pc_l2,avg_pc_1l,avg_acc_l5,avg_acc_l2,avg_acc_1l) = print_detailed_evaluations(dict_l, dict_n, dict_e, P3L5, P3L2, P31L, Y)
+  return (list_acc_l5, list_acc_l2, list_acc_1l,avg_pc_l5,avg_pc_l2,avg_pc_1l,avg_acc_l5,avg_acc_l2,avg_acc_1l)
+
+def evaluate_prediction_4 (dict_l, P, Y, min_seq_sep):
+  P2 = floor_lower_left_to_zero(P, min_seq_sep)
+  datacount = len(Y[:, 0])
+  L = int(math.sqrt(len(Y[0, :])))
+  Y1 = floor_lower_left_to_zero(Y, min_seq_sep)
+  list_acc_l5 = []
+  list_acc_l2 = []
+  list_acc_1l = []
+  P3L5 = ceil_top_xL_to_one(dict_l, P2, Y, 0.2)
+  P3L2 = ceil_top_xL_to_one(dict_l, P2, Y, 0.5)
+  P31L = ceil_top_xL_to_one(dict_l, P2, Y, 1)
+  (list_acc_l5, list_acc_l2, list_acc_1l,avg_pc_l5,avg_pc_l2,avg_pc_1l,avg_acc_l5,avg_acc_l2,avg_acc_1l) = print_detailed_evaluations_4(dict_l, P3L5, P3L2, P31L, Y)
   return (list_acc_l5, list_acc_l2, list_acc_1l,avg_pc_l5,avg_pc_l2,avg_pc_1l,avg_acc_l5,avg_acc_l2,avg_acc_1l)
 
 # Floor everything below the triangle of interest to zero
@@ -448,18 +962,51 @@ def print_detailed_evaluations(dict_l, dict_n, dict_e, PL5, PL2, PL, Y):
   print ("")
   return (list_acc_l5, list_acc_l2, list_acc_1l,avg_pc_l5,avg_pc_l2,avg_pc_1l,avg_acc_l5,avg_acc_l2,avg_acc_1l)
 
-
-
-def evaluate_prediction (dict_l, dict_n, dict_e, P, Y, min_seq_sep):
-  P2 = floor_lower_left_to_zero(P, min_seq_sep)
-  datacount = len(Y[:, 0])
-  L = int(math.sqrt(len(Y[0, :])))
-  Y1 = floor_lower_left_to_zero(Y, min_seq_sep)
+def print_detailed_evaluations_4(dict_l, PL5, PL2, PL, Y):
+  datacount = len(dict_l)
+  print("  ID    PDB      L     Nc    L/5  PcL/5  PcL/2   Pc1L    AccL/5    AccL/2      AccL")
+  avg_nc  = 0    # average true Nc
+  avg_pc_l5  = 0 # average predicted correct L/5
+  avg_pc_l2  = 0 # average predicted correct L/2
+  avg_pc_1l  = 0 # average predicted correct 1L
+  avg_acc_l5 = 0.0
+  avg_acc_l2 = 0.0
+  avg_acc_1l = 0.0
   list_acc_l5 = []
   list_acc_l2 = []
   list_acc_1l = []
-  P3L5 = ceil_top_xL_to_one(dict_l, P2, Y, 0.2)
-  P3L2 = ceil_top_xL_to_one(dict_l, P2, Y, 0.5)
-  P31L = ceil_top_xL_to_one(dict_l, P2, Y, 1)
-  (list_acc_l5, list_acc_l2, list_acc_1l,avg_pc_l5,avg_pc_l2,avg_pc_1l,avg_acc_l5,avg_acc_l2,avg_acc_1l) = print_detailed_evaluations(dict_l, dict_n, dict_e, P3L5, P3L2, P31L, Y)
+  i = -1
+  for pdb in sorted(dict_l):
+    i = i + 1
+    nc = int(Y[i].sum())
+    L = dict_l[pdb]
+    L5 = int(L/5)
+    L2 = int(L/2)
+    pc_l5 = np.logical_and(Y[i], PL5[i, :]).sum()
+    pc_l2 = np.logical_and(Y[i], PL2[i, :]).sum()
+    pc_1l = np.logical_and(Y[i], PL[i, :]).sum()
+    acc_l5 = float(pc_l5) / (float(L5) + epsilon)
+    acc_l2 = float(pc_l2) / (float(L2) + epsilon)
+    acc_1l = float(pc_1l) / (float(L) + epsilon)
+    list_acc_l5.append(acc_l5)
+    list_acc_l2.append(acc_l2)
+    list_acc_1l.append(acc_1l)
+    print(" %3s %6s %6s %6s %6s %6s %6s %6s    %.4f    %.4f    %.4f" % (i, pdb, L, nc, L5, pc_l5, pc_l2, pc_1l, acc_l5, acc_l2, acc_1l))
+    avg_nc = avg_nc + nc
+    avg_pc_l5 = avg_pc_l5 + pc_l5
+    avg_pc_l2 = avg_pc_l2 + pc_l2
+    avg_pc_1l = avg_pc_1l + pc_1l
+    avg_acc_l5 = avg_acc_l5 + acc_l5
+    avg_acc_l2 = avg_acc_l2 + acc_l2
+    avg_acc_1l = avg_acc_1l + acc_1l
+  avg_nc = int(avg_nc/datacount)
+  avg_pc_l5 = int(avg_pc_l5/datacount)
+  avg_pc_l2 = int(avg_pc_l2/datacount)
+  avg_pc_1l = int(avg_pc_1l/datacount)
+  avg_acc_l5 = avg_acc_l5/datacount
+  avg_acc_l2 = avg_acc_l2/datacount
+  avg_acc_1l = avg_acc_1l/datacount
+  print("   Avg                           %6s        %6s %6s %6s    %.4f    %.4f    %.4f" % (avg_nc, avg_pc_l5, avg_pc_l2, avg_pc_1l, avg_acc_l5, avg_acc_l2, avg_acc_1l))
+  print ("")
   return (list_acc_l5, list_acc_l2, list_acc_1l,avg_pc_l5,avg_pc_l2,avg_pc_1l,avg_acc_l5,avg_acc_l2,avg_acc_1l)
+

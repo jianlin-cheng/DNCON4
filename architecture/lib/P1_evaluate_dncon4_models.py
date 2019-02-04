@@ -137,7 +137,8 @@ sys.stdout.flush()
 print('Load all test data into memory..',end='')
 selected_list = subset_pdb_dict(te_l,   0, Maximum_length, Maximum_length, 'ordered')  ## here can be optimized to automatically get maxL from selected dataset
 print('Loading data sets ..',end='')
-(selected_list_1D,selected_list_2D) = get_x_1D_2D_from_this_list(selected_list, path_of_X, Maximum_length,dist_string)
+reject_fea_file =  '/mnt/data/zhiye/Python/DNCON4/architecture/lib/feature_to_use.txt'
+(selected_list_1D,selected_list_2D) = get_x_1D_2D_from_this_list(selected_list, path_of_X, Maximum_length,dist_string,reject_fea_file)
 print("selected_list_1D.sum: ",np.sum(selected_list_1D))
 print("selected_list_2D.sum: ",np.sum(selected_list_2D))
 print("selected_list_1D.shape: ",selected_list_1D.shape)
