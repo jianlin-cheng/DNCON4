@@ -26,8 +26,8 @@ from nndef import build_cnn
 MAP_CHANNELS = 60
 RAW_CHANNELS = 441
 
-RESTART_FLAG = 1
-LRATE_DECAY = 1
+RESTART_FLAG = 0
+LRATE_DECAY = 0
 
 # Locations of .map and .21c files (latter calculated from .aln files)
 dc_train_map_dir = '/storage/hpc/data/fqg7h/DeepCov/data/map/'
