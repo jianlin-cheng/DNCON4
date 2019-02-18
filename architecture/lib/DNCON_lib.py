@@ -76,9 +76,9 @@ def build_dataset_dictionaries_train(path_lists):
   with open(path_lists + 'train.lst') as f:
     for line in f:
       tr_l[line.strip()] = length_dict[line.strip()]
-  print ('Data counts:')
-  print ('Total : ' + str(len(length_dict)))
-  print ('Train : ' + str(len(tr_l)))
+  # print ('Data counts:')
+  # print ('Total : ' + str(len(length_dict)))
+  # print ('Train : ' + str(len(tr_l)))
   return (tr_l)
 
 def build_dataset_dictionaries_test(path_lists):
@@ -91,9 +91,9 @@ def build_dataset_dictionaries_test(path_lists):
   with open(path_lists + 'test.lst') as f:
     for line in f:
       te_l[line.strip()] = length_dict[line.strip()]
-  print ('Data counts:')
-  print ('Total : ' + str(len(length_dict)))
-  print ('Test  : ' + str(len(te_l)))
+  # print ('Data counts:')
+  # print ('Total : ' + str(len(length_dict)))
+  # print ('Test  : ' + str(len(te_l)))
   return (te_l)
 
 def build_dataset_dictionaries_sample(path_lists):
@@ -182,8 +182,8 @@ def load_sample_data_2D(data_list, feature_dir,Interval,seq_end, min_seq_sep,dis
       
     ### load the data
     (featuredata,feature_index_all_dict) = getX_2D_format(featurefile, cov, plm, accept_list, pdb_lens, notxt_flag)
-    print("\n######",len(featuredata))
-    print("\n######",len(feature_index_all_dict)) 
+    # print("\n######",len(featuredata))
+    # print("\n######",len(feature_index_all_dict)) 
     feature_2D_all=[]
     for key in sorted(feature_index_all_dict.keys()):
         featurename = feature_index_all_dict[key]
@@ -198,8 +198,8 @@ def load_sample_data_2D(data_list, feature_dir,Interval,seq_end, min_seq_sep,dis
           
     fea_len = feature_2D_all[0].shape[0]
 
-    print("######",len(feature_2D_all))
-    print("######",fea_len)
+    # print("######",len(feature_2D_all))
+    # print("######",fea_len)
     #print("Checking length ",fea_len)
     for ran in range(0,seq_end,Interval):
         start_ran = ran

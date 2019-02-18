@@ -11,6 +11,8 @@ from DNCON_lib import *
 
 from Model_construct import _weighted_binary_crossentropy, _weighted_categorical_crossentropy, _weighted_binary_crossentropy_shield
 
+from maxout_test import MaxoutConv2D_Test
+
 import numpy as np
 import time
 import shutil
@@ -687,8 +689,10 @@ def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string,
                     accept_list.append(feature_name)
     if (dataset_select == 'train'):
         dataset_list = build_dataset_dictionaries_train(path_of_lists)
-    else:
+    elif (dataset_select == 'vali'):
         dataset_list = build_dataset_dictionaries_test(path_of_lists)
+    else:
+        dataset_list = build_dataset_dictionaries_train(path_of_lists)
 
     if (list_sep_flag == False):
         training_dict = subset_pdb_dict(dataset_list, 0, 500, 5000, 'random') #can be random ordered   
@@ -696,8 +700,8 @@ def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string,
         training_lens = list(training_dict.values())
         all_data_num = len(training_dict)
         loopcount = all_data_num // int(batch_size)
-        print('all_num=',all_data_num)
-        print('loopcount=',loopcount)
+        # print('all_num=',all_data_num)
+        # print('loopcount=',loopcount)
     else:
         training_dict = subset_pdb_dict(dataset_list, 0, 500, 5000, 'ordered') #can be random ordered
         all_training_list = list(training_dict.keys())
@@ -819,23 +823,19 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         feature_2D_num = trainfeaturedata[0][1].shape[2]
  
     print("Load feature number", feature_2D_num)
-    train_avg_acc_l5_best = 0 
-    val_avg_acc_l5_best = 0
-    min_seq_sep = 5
     ### Define the model 
     model_out= "%s/model-train-%s.json" % (CV_dir,model_prefix)
     model_weight_out = "%s/model-train-weight-%s.h5" % (CV_dir,model_prefix)
     model_weight_out_best = "%s/model-train-weight-%s-best-val.h5" % (CV_dir,model_prefix)
+    model_and_weights = "%s/model-weight-%s.h5" % (CV_dir,model_prefix)
 
 
-    lr_decay = False
-    train_loss_last = 1e32
-    train_loss_list = []
     if model_prefix == 'DNCON4_2dCONV':
         # opt = RMSprop(lr=0.001, rho=0.9, epsilon=1e-06)
         # opt = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
         opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)#0.001
         # opt = SGD(lr=0.01, momentum=0.9, decay=0.00, nesterov=True)
+        # opt = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
         DNCON4_CNN = DeepConv_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n, activation)
     elif model_prefix == 'DNCON4_2dINCEP':
         opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
@@ -850,8 +850,8 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         # opt = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
         DNCON4_CNN = DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
     elif model_prefix == 'DNCON4_2dRCNN':
-        # opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)#0.001
-        opt = RMSprop(lr=0.001, rho=0.9, epsilon=1e-06)
+        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)#0.001
+        # opt = RMSprop(lr=0.001, rho=0.9, epsilon=1e-06)
         DNCON4_CNN = DeepCovRCNN_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
     else:
         DNCON4_CNN = DeepConv_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt)
@@ -884,7 +884,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
           myfile.write("Seq_Name\tSeq_Length\tavg_TP_counts_l5\tavg_TP_counts_l2\tavg_TP_counts_1l\tAvg_Accuracy_l5\tAvg_Accuracy_l2\tAvg_Accuracy_1l\n")
 
     if loss_function == 'weighted_crossentropy':
-        if weight_p < 1:
+        if weight_p <= 1:
             weight_n = 1.0 - weight_p
         loss_function = _weighted_binary_crossentropy(weight_p, weight_n)
         # loss_function = _weighted_binary_crossentropy_shield(weight_p, weight_n, 5)
@@ -894,9 +894,11 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
 
     model_weight_epochs = "%s/model_weights/"%(CV_dir)
     model_predict= "%s/predict_map/"%(CV_dir)
+    model_predict_casp13= "%s/predict_map_casp13/"%(CV_dir)
     model_val_acc= "%s/val_acc_inepoch/"%(CV_dir)
     chkdirs(model_weight_epochs)
     chkdirs(model_predict)
+    chkdirs(model_predict_casp13)
     chkdirs(model_val_acc)
 
     tr_l = build_dataset_dictionaries_train(path_of_lists)
@@ -908,24 +910,47 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
 
     # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.0001)
     # callbacks=[reduce_lr]
+    train_avg_acc_l5_best = 0 
+    val_avg_acc_l5_best = 0
+    min_seq_sep = 5
+    lr_decay = False
+    train_loss_last = 1e32
+    train_loss_list = []
+    evalu_loss_list = []
     for epoch in range(epoch_rerun,epoch_outside):
-        # path_of_lists, feature_dir, min_seq_sep,dist_string, batch_size, reject_fea_file='None'
+        if (epoch >=20 and lr_decay == False):
+            print("Setting lr_decay as true")
+            lr_decay = True
+            # opt = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
+            # opt = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-06, decay=0.0)
+            opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=False)
+            DNCON4_CNN.load_weights(model_weight_out_best)
+            DNCON4_CNN.compile(loss=loss_function, metrics=['accuracy'], optimizer=opt)
+
+
         # class_weight = {0:1.,1:60.}
         if(list_sep_flag == False):
             print("\n############ Running epoch ", epoch)
             if epoch == 0 and rerun_flag == 0:
-                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = 5)           
-                train_loss_list.append(history.history['loss'][4])
+                first_inepoch = 5
+                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = first_inepoch, 
+                    validation_data = generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali'), validation_steps = len(te_l))           
+                train_loss_list.append(history.history['loss'][first_inepoch-1])
+                evalu_loss_list.append(history.history['val_loss'][first_inepoch-1])
             else:
-                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = epoch_inside)  
+                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = 1,
+                    validation_data = generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali'), validation_steps = len(te_l))  
+                # history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = epoch_inside, class_weight='auto')  
                 train_loss_list.append(history.history['loss'][0])
+                evalu_loss_list.append(history.history['val_loss'][0])
         else:
             for index in range(child_list_num):
                 print("\n############ Runing outside epoch %i\nProcessing list %i of %i...."%(epoch, index, child_list_num))
                 history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, index, list_sep_flag=True), steps_per_epoch = 15//batch_size_train, epochs = 5)
 
         DNCON4_CNN.save_weights(model_weight_out)
-        
+
+        # DNCON4_CNN.save(model_and_weights)
         
         ### save models
         model_weight_out_inepoch = "%s/model-train-weight-%s-epoch%i.h5" % (model_weight_epochs,model_prefix,epoch)
@@ -936,7 +961,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         val_acc_out_inepoch = "%s/validation_epoch%i.acc_history" % (model_val_acc, epoch) 
         sys.stdout.flush()
         print('Load all test data into memory..',end='')
-        selected_list = subset_pdb_dict(te_l,   0, Maximum_length, Maximum_length, 'ordered')  ## here can be optimized to automatically get maxL from selected dataset
+        selected_list = subset_pdb_dict(te_l,   0, 500, 5000, 'ordered')  ## here can be optimized to automatically get maxL from selected dataset
         print('Loading data sets ..',end='')
 
         testdata_len_range=50
@@ -951,8 +976,6 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
             value = selected_list[key]
             p1 = {key: value}
             Maximum_length = value
-        # for i in range(0, 300, testdata_len_range):
-        #     p1 = {key: value for key, value in selected_list.items() if value < i + testdata_len_range and value >= i}
             print(len(p1))
             if len(p1) < 1:
                 continue
@@ -968,6 +991,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
             selected_list_label = get_y_from_this_list(p1, path_of_Y, 0, Maximum_length, dist_string)
             feature_2D_num = selected_list_2D.shape[3]
             DNCON4_CNN.load_weights(model_weight_out)
+
             DNCON4_CNN_prediction = DNCON4_CNN.predict([selected_list_2D], batch_size= 1)
             ##flatteng
             # print(type(DNCON4_CNN_prediction))
@@ -1002,18 +1026,19 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         with open(val_acc_history_out, "a") as myfile:
                     myfile.write(val_acc_history_content)  
 
-        print("History of epoch %i" % epoch)
-        print(history.history['loss'])
-        # train_loss_list.append[history.history['loss']]
+        train_loss = history.history['loss'][0]
+        # train_loss = history.history['val_loss'][0]
+        print("Train loss of epoch %i is %.6f" % (epoch, train_loss))
         if (lr_decay and train_loss_last != 1e32):
             current_lr = K.get_value(DNCON4_CNN.optimizer.lr)
-            train_loss = history.history['loss']
             if (train_loss < train_loss_last and current_lr < 0.01):
-                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 1.1)
-                print("Increasing learning rate to {} ...".format(current_lr * 1.1))
+                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 1.2)
+                print("Increasing learning rate to {} ...".format(current_lr * 1.2))
             else:
-                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 0.5)
-                print("Decreasing learning rate to {} ...".format(current_lr * 0.5))
+                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 0.8)
+                print("Decreasing learning rate to {} ...".format(current_lr * 0.8))
+        train_loss_last = train_loss
+
 
         print('The validation accuracy is ',val_acc_history_content)
         if out_avg_acc_l5 >= val_avg_acc_l5_best:
@@ -1026,13 +1051,6 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
             print("Saved best weight to disk, ", score_imed)
             DNCON4_CNN.save_weights(model_weight_out_best)
 
-        # elif out_avg_acc_l5 < 0.1:
-        #     lr = K.get_value(DNCON4_CNN.optimizer.lr)
-        #     if lr >= 0.00001:
-        #         K.set_value(DNCON4_CNN.optimizer.lr, lr * 0.5)
-        #         print("lr changed to {}".format(lr * 0.5))
-        #     DNCON4_CNN.load_weights(model_weight_out_best)
-        #save predict contact map
         if epoch == epoch_outside-1:
             for key in selected_list:
                 print('saving cmap of %s\n'%(key))
@@ -1040,11 +1058,12 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
                 single_dict={key:value}
                 Maximum_length = value
                 # print(single_dict)
-                selected_list_2D = get_x_2D_from_this_list(single_dict, path_of_X, Maximum_length,dist_string, reject_fea_file, value)
+                selected_list_2D = get_x_2D_from_this_list(single_dict, path_of_X, Maximum_length, dist_string, reject_fea_file, value)
                 print("selected_list_2D.shape: ",selected_list_2D.shape)
                 print('Loading label sets..')
                 selected_list_label = get_y_from_this_list(single_dict, path_of_Y, min_seq_sep, Maximum_length, dist_string)
                 DNCON4_CNN.load_weights(model_weight_out_best)
+
                 DNCON4_CNN_prediction = DNCON4_CNN.predict([selected_list_2D], batch_size= 1)
 
                 CMAP = DNCON4_CNN_prediction.reshape(Maximum_length, Maximum_length)
@@ -1063,12 +1082,41 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
                 # np.savetxt(cmap_file, DNCON4_CNN_prediction, fmt='%.4f')
                 cmap_file = "%s/%s.txt" % (model_predict,key)
                 np.savetxt(cmap_file, real_cmap, fmt='%.4f')
+                # history_loss_file = CV_dir+"/train_loss.history"
+            
+            ###Predict CASP13
+            # path_of_lists = '/mnt/data/zhiye/Python/DNCON4/data/CASP13/lists-test-train/'
+            # path_of_X='/mnt/data/zhiye/Python/DNCON4/data/CASP13/feats/'
+            # te_l = build_dataset_dictionaries_test(path_of_lists)
+            # selected_list = subset_pdb_dict(te_l,   0, 700, 5000, 'ordered')  ## here can be optimized to automatically get maxL from selected dataset
+            # print('Loading casp13 data sets ..',end='')
+            
+            # for key in selected_list:
+            #     value = selected_list[key]
+            #     single_dict={key:value}
+            #     Maximum_length = value
+            #     print('saving cmap of', single_dict)
+            #     # print(single_dict)
+            #     selected_list_2D = get_x_2D_from_this_list(single_dict, path_of_X, Maximum_length, dist_string, reject_fea_file, value)
+            #     print("selected_list_2D.shape: ",selected_list_2D.shape)
+            #     DNCON4_CNN.load_weights(model_weight_out_best)
+
+            #     DNCON4_CNN_prediction = DNCON4_CNN.predict([selected_list_2D], batch_size= 1)
+
+            #     CMAP = DNCON4_CNN_prediction.reshape(Maximum_length, Maximum_length)
+            #     Map_UpTrans = np.triu(CMAP, 1).T
+            #     Map_UandL = np.triu(CMAP)
+            #     real_cmap = Map_UandL + Map_UpTrans
+
+            #     cmap_file = "%s/%s.txt" % (model_predict_casp13,key)
+            #     np.savetxt(cmap_file, real_cmap, fmt='%.4f')
+
 
         print("Train loss history:", train_loss_list)
+        print("Validation loss history:", evalu_loss_list)
         #clear memory
         # K.clear_session()
         # tf.reset_default_graph()
 
-    
     print("Training finished, best validation acc = ",val_avg_acc_l5_best)
     return val_avg_acc_l5_best
