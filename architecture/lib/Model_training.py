@@ -723,6 +723,7 @@ def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string,
         batch_list = training_list[index * batch_size:(index + 1) * batch_size]
         batch_list_len = training_lens[index * batch_size:(index + 1) * batch_size]
         max_pdb_lens = max(batch_list_len)
+        # max_pdb_lens = 320
         # if max_pdb_lens <= 300:
         #     max_pdb_lens=300
         # elif max_pdb_lens <=300 and max_pdb_lens > 150:
@@ -842,8 +843,8 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         DNCON4_CNN = DeepInception_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
     elif model_prefix == 'DNCON4_2dRES':
         # opt = Adadelta(lr=1.0, rho=0.95, epsilon=1e-6)#1
-        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
-        # opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=True)
+        # opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
+        opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=False)
         # opt = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-06, decay=0.0)
         # opt = Adagrad(lr=0.01, epsilon=1e-06)
         # opt = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -918,9 +919,9 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
     train_loss_list = []
     evalu_loss_list = []
     for epoch in range(epoch_rerun,epoch_outside):
-        if (epoch >=20 and lr_decay == False):
+        if (epoch >=200 and lr_decay == False):
             print("Setting lr_decay as true")
-            lr_decay = True
+            # lr_decay = True
             # opt = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
             # opt = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-06, decay=0.0)
             opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=False)
@@ -976,6 +977,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
             value = selected_list[key]
             p1 = {key: value}
             Maximum_length = value
+            # Maximum_length = 320
             print(len(p1))
             if len(p1) < 1:
                 continue
@@ -994,7 +996,8 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
 
             DNCON4_CNN_prediction = DNCON4_CNN.predict([selected_list_2D], batch_size= 1)
             ##flatteng
-            # print(type(DNCON4_CNN_prediction))
+
+
             CMAP = DNCON4_CNN_prediction.reshape(Maximum_length, Maximum_length)
             Map_UpTrans = np.triu(CMAP, 1).T
             Map_UandL = np.triu(CMAP)
@@ -1032,10 +1035,10 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         if (lr_decay and train_loss_last != 1e32):
             current_lr = K.get_value(DNCON4_CNN.optimizer.lr)
             if (train_loss < train_loss_last and current_lr < 0.01):
-                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 1.2)
+                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 1.1)
                 print("Increasing learning rate to {} ...".format(current_lr * 1.2))
             else:
-                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 0.8)
+                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 0.5)
                 print("Decreasing learning rate to {} ...".format(current_lr * 0.8))
         train_loss_last = train_loss
 

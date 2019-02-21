@@ -9,11 +9,7 @@
 #SBATCH --time 2-00:00     # days-hours:minutes
 #SBATCH --qos=normal
 #SBATCH --account=general-gpu  # investors will replace this with their account name
-<<<<<<< HEAD
 #SBATCH --gres gpu:"GeForce GTX 1080 Ti":1
-=======
-#SBATCH --gres gpu:1
->>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
 module load cuda/cuda-9.0.176
 module load cudnn/cudnn-7.1.4-cuda-9.0.176
 export GPUARRAY_FORCE_CUDA_DRIVER_LOAD=""
@@ -24,20 +20,12 @@ export HDF5_USE_FILE_LOCKING=FALSE
 module load R/R-3.3.1
 temp_dir=$(pwd)
 gloable_dir=${temp_dir%%DNCON4*}'DNCON4'
-<<<<<<< HEAD
 # feature_dir=$gloable_dir/data/badri_training_benchmark/feats/
 feature_dir=$gloable_dir/data/deepcov/feats/ 
-=======
-feature_dir=$gloable_dir/data/badri_training_benchmark/feats/
->>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
 output_dir=$gloable_dir/architecture/outputs/ResNet_arch/cov
 acclog_dir=$gloable_dir/architecture/outputs/All_Validation_Acc
 printf "$gloable_dir\n"
 
 # python $gloable_dir/architecture/ResNet_arch/scripts/train_deepResNet_2D_gen_tune.py 150 64 4 'nadam' 5  50 1  $feature_dir $output_dir $acclog_dir 1 "VarianceScaling" "weighted_crossentropy" 30
 
-<<<<<<< HEAD
 python $gloable_dir/architecture/ResNet_arch/scripts/train_deepResNet_2D_gen_tune_cov.py 150 28  6 'nadam' 3  50 1 $feature_dir $output_dir $acclog_dir 3 'VarianceScaling' 'weighted_crossentropy' 0.7
-=======
-python $gloable_dir/architecture/ResNet_arch/scripts/train_deepResNet_2D_gen_tune_cov.py 150 28  6 'nadam' 3  50 1 $feature_dir $output_dir $acclog_dir 3 'VarianceScaling' 'weighted_crossentropy' 5
->>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366

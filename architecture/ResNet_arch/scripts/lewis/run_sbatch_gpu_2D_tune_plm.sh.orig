@@ -9,7 +9,11 @@
 #SBATCH --time 2-00:00     # days-hours:minutes
 #SBATCH --qos=normal
 #SBATCH --account=general-gpu  # investors will replace this with their account name
+<<<<<<< HEAD
 #SBATCH --gres gpu:"GeForce GTX 1080 Ti":1
+=======
+#SBATCH --gres gpu:1
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
 module load cuda/cuda-9.0.176
 module load cudnn/cudnn-7.1.4-cuda-9.0.176
 export GPUARRAY_FORCE_CUDA_DRIVER_LOAD=""
@@ -27,4 +31,8 @@ printf "$gloable_dir\n"
 
 # python $gloable_dir/architecture/ResNet_arch/scripts/train_deepResNet_2D_gen_tune.py 150 64 4 'nadam' 5  50 1  $feature_dir $output_dir $acclog_dir 1 "VarianceScaling" "weighted_crossentropy" 30
 
+<<<<<<< HEAD
 python $gloable_dir/architecture/ResNet_arch/scripts/train_deepResNet_2D_gen_tune_plm.py 150 28  6 'nadam' 3  40 1 $feature_dir $output_dir $acclog_dir 3 'VarianceScaling' 'weighted_crossentropy' 0.7
+=======
+python $gloable_dir/architecture/ResNet_arch/scripts/train_deepResNet_2D_gen_tune_plm.py 150 28  6 'nadam' 3  50 1 $feature_dir $output_dir $acclog_dir 3 'VarianceScaling' 'weighted_crossentropy' 5
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
