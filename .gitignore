@@ -1,0 +1,20 @@
+# file to ignore
+
+# folder to ignore
+architecture/outputs/
+architecture/dncon2_CNN_arch/
+architecture/FracNet_arch/
+architecture/Incep_arch/
+architecture/RCIncep_arch/
+architecture/RCNN_arch/
+architecture/ResAtt_arch/
+bin/
+data/
+doc/
+example/
+feature/
+lib/
+model/
+src/
+test/
+training/
