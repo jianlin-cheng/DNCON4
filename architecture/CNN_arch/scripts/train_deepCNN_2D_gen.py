@@ -14,7 +14,11 @@ print('%s' % current_os_name)
 if current_os_name == 'Linux-4.15.0-42-generic-x86_64-with-Ubuntu-18.04-bionic': #on local
   GLOBAL_PATH='/mnt/data/zhiye/Python/DNCON4/architecture'
   sysflag='local'
+<<<<<<< HEAD
 elif current_os_name == 'Linux-3.10.0-957.5.1.el7.x86_64-x86_64-with-centos-7.6.1810-Core': #on lewis
+=======
+elif current_os_name == 'Linux-3.10.0-862.14.4.el7.x86_64-x86_64-with-centos-7.5.1804-Core': #on lewis
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
   GLOBAL_PATH=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
   sysflag='lewis'
 else:
@@ -57,7 +61,11 @@ lib_dir=GLOBAL_PATH+'/lib/'
 
 if sysflag == 'local':
   import tensorflow as tf
+<<<<<<< HEAD
   os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+=======
+  os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
   config = tf.ConfigProto(allow_soft_placement = True)
   tf.GPUOptions(per_process_gpu_memory_fraction = 0.99)
   config.gpu_options.allow_growth = True

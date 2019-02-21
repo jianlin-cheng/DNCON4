@@ -9,7 +9,11 @@
 #SBATCH --time 2-00:00     # days-hours:minutes
 #SBATCH --qos=normal
 #SBATCH --account=general-gpu  # investors will replace this with their account name
+<<<<<<< HEAD
 #SBATCH --gres gpu:"GeForce GTX 1080 Ti":1
+=======
+#SBATCH --gres gpu:1
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
 #module load cuda/cuda-9.0
 module load cudnn/cudnn-7.1.4-cuda-9.0.176
 export GPUARRAY_FORCE_CUDA_DRIVER_LOAD=""

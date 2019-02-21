@@ -15,7 +15,11 @@ print('%s' % current_os_name)
 if current_os_name == 'Linux-4.15.0-44-generic-x86_64-with-Ubuntu-18.04-bionic': #on local
   GLOBAL_PATH='/mnt/data/zhiye/Python/DNCON4/architecture'
   sysflag='local'
+<<<<<<< HEAD
 elif current_os_name == 'Linux-3.10.0-957.5.1.el7.x86_64-x86_64-with-centos-7.6.1810-Core': #on lewis
+=======
+elif current_os_name == 'Linux-3.10.0-957.1.3.el7.x86_64-x86_64-with-centos-7.6.1810-Core': #on lewis
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
   GLOBAL_PATH=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
   sysflag='lewis'
 else:
@@ -92,12 +96,20 @@ def chkfiles(fn):
 
 dist_string = '80'
 if sysflag == 'local':
+<<<<<<< HEAD
   path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train/'
   # path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/deepcov/lists-test-train/'
   reject_fea_file =  GLOBAL_PATH+'/lib/feature_to_use_lewis.txt'
 elif sysflag == 'lewis':
   # path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train/'
   path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/deepcov/lists-test-train/'
+=======
+  # path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train/'
+  path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/deepcov/lists-test-train/'
+  reject_fea_file =  GLOBAL_PATH+'/lib/feature_to_use_lewis.txt'
+elif sysflag == 'lewis':
+  path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train/'
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
   reject_fea_file =  GLOBAL_PATH+'/lib/feature_to_use_cov.txt'
 path_of_Y         =  feature_dir
 path_of_X         = feature_dir

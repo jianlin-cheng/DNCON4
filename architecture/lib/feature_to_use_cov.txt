@@ -1,0 +1,36 @@
+-# Sequence Length (log)
+-# alignment-count (log)
+-# effective-alignment-count (log)
+-# Relative 'e' count
+-# Relative 'H' count
+-# Relative 'E' count
+-# AA composition
+-# Atchley factors
+-# Secondary Structure
+-# Solvent accessibility
+-# PSSM inf feature
+-# PSSM
+-# PSSM Sums (divided by 100)
+-# PSSM sum cosines
+-# Relative sequence separation
+-# Sequence separation between 23 and 28
+-# Sequence separation between 28 and 38
+-# Sequence separation between 38 and 48
+-# Sequence separation 48+
+-# Psipred
+-# Psisolv
+-# pref score
+-# scld lu con pot
+-# levitt con pot
+-# braun con pot
+-# joint entro
+-# pearson r
+-# Shannon entropy sum
+-# ccmpred
+-# freecontact
+-# psicov
+-# pstat_pots
+-# pstat_mimt
+-# pstat_mip
+# cov
+-# plm

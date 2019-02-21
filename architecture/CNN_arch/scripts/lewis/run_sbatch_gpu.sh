@@ -9,7 +9,11 @@
 #SBATCH --time 2-00:00     # days-hours:minutes
 #SBATCH --qos=normal
 #SBATCH --account=general-gpu  # investors will replace this with their account name
+<<<<<<< HEAD
 #SBATCH --gres gpu:"GeForce GTX 1080 Ti":1
+=======
+#SBATCH --gres gpu:1
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
 #module load cuda/cuda-9.0
 module load cudnn/cudnn-7.1.4-cuda-9.0.176
 export GPUARRAY_FORCE_CUDA_DRIVER_LOAD=""
@@ -21,7 +25,11 @@ module load R/R-3.3.1
 temp_dir=$(pwd)
 gloable_dir=${temp_dir%%DNCON4*}'DNCON4'
 feature_dir=$gloable_dir/data/badri_training_benchmark/feats/
+<<<<<<< HEAD
 output_dir=$gloable_dir/architecture/outputs/CNN_arch/compare
+=======
+output_dir=$gloable_dir/architecture/outputs/CNN_arch/new_fea_test_gen
+>>>>>>> 26136bbf93b1d66059865e3fb3b5f5f07fa41366
 acclog_dir=$gloable_dir/architecture/outputs/All_Validation_Acc
 printf "$gloable_dir\n"
 
