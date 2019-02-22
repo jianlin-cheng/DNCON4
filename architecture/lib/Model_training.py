@@ -843,8 +843,8 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         DNCON4_CNN = DeepInception_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
     elif model_prefix == 'DNCON4_2dRES':
         # opt = Adadelta(lr=1.0, rho=0.95, epsilon=1e-6)#1
-        # opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
-        opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=False)
+        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
+        # opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=False)
         # opt = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-06, decay=0.0)
         # opt = Adagrad(lr=0.01, epsilon=1e-06)
         # opt = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -919,11 +919,9 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
     train_loss_list = []
     evalu_loss_list = []
     for epoch in range(epoch_rerun,epoch_outside):
-        if (epoch >=200 and lr_decay == False):
+        if (epoch >=30 and lr_decay == False):
             print("Setting lr_decay as true")
-            # lr_decay = True
-            # opt = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
-            # opt = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-06, decay=0.0)
+            lr_decay = True
             opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=False)
             DNCON4_CNN.load_weights(model_weight_out_best)
             DNCON4_CNN.compile(loss=loss_function, metrics=['accuracy'], optimizer=opt)

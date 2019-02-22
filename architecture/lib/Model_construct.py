@@ -22,12 +22,10 @@ from keras.optimizers import Adam
 from keras.utils import multi_gpu_model
 from keras.utils.generic_utils import Progbar
 from keras.constraints import maxnorm
-
-from keras import utils, regularizers
 from keras.engine.topology import Layer
 from keras.layers.normalization import BatchNormalization
 from keras.activations import tanh, softmax
-from keras import metrics
+from keras import metrics, initializers, utils, regularizers
 import numpy as np
 
 import tensorflow as tf
@@ -54,9 +52,21 @@ def _bn_relu(input):
     norm = BatchNormalization(axis=-1)(input)
     return Activation("relu")(norm)
 
+def _in_relu(input):
+    norm = InstanceNormalization(axis=-1)(input)
+    return Activation("relu")(norm)
+
 def _bn_relu_conv2D(filters,  nb_row, nb_col, strides=(1, 1), use_bias=True, kernel_initializer = "he_normal",  kernel_regularizer=None):
     def f(input):
         act = _bn_relu(input)
+        conv = Conv2D(filters=filters, kernel_size=(nb_row, nb_col), strides=strides,use_bias=use_bias,
+                             kernel_initializer=kernel_initializer, padding="same", kernel_regularizer=kernel_regularizer)(act)
+        return conv
+    return f
+
+def _in_relu_conv2D(filters,  nb_row, nb_col, strides=(1, 1), use_bias=True, kernel_initializer = "he_normal",  kernel_regularizer=None):
+    def f(input):
+        act = _in_relu(input)
         conv = Conv2D(filters=filters, kernel_size=(nb_row, nb_col), strides=strides,use_bias=use_bias,
                              kernel_initializer=kernel_initializer, padding="same", kernel_regularizer=kernel_regularizer)(act)
         return conv
@@ -68,6 +78,14 @@ def _conv_bn_relu2D(filters,  nb_row, nb_col, strides=(1, 1), use_bias=True, ker
                              kernel_initializer=kernel_initializer, padding="same", kernel_regularizer=kernel_regularizer)(input)
         # norm = BatchNormalization(axis=-1)(conv)
         norm = BatchNormalization(axis=-1)(conv)
+        return Activation("relu")(norm)
+    return f
+
+def _conv_in_relu2D(filters,  nb_row, nb_col, strides=(1, 1), use_bias=True, kernel_initializer = "he_normal",  kernel_regularizer=None):
+    def f(input):
+        conv = Conv2D(filters=filters, kernel_size=(nb_row, nb_col), strides=strides,use_bias=use_bias,
+                             kernel_initializer=kernel_initializer, padding="same", kernel_regularizer=kernel_regularizer)(input)
+        norm = InstanceNormalization(axis=-1)(conv)
         return Activation("relu")(norm)
     return f
 
@@ -166,7 +184,7 @@ def _weighted_binary_crossentropy_shield(pos_weight=1, neg_weight=1, shield=0):
         out = -(y_true * K.log(y_pred)*pos_weight+ (1.0 - y_true) * K.log(1.0 - y_pred)*neg_weight)
         return K.mean(out, axis=-1)
     return loss
-#https://keunwoochoi.wordpress.com/2016/11/18/for-beginners-writing-a-custom-keras-layer/
+
 class generatePairwiseF_keras1(Layer):
     '''
         (l,n) -> (l*l,3n)
@@ -273,9 +291,6 @@ class generatePairwiseF(Layer):
         config = {'batch_size': self._batch_size,'output_shape': self._output_shape}
         base_config = super(generatePairwiseF, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-    
-def convert2tensor(x):
-    return K.concatenate([x])
 
 class loadPairwiseF(Layer):
     '''
@@ -304,6 +319,49 @@ class loadPairwiseF(Layer):
         #outputnew =  K.reshape(new_x,self._output_shape)
         #print "The inputnew shape is: ", outputnew.get_shape()
         return outputnew
+
+def MaxoutAct(input, filters, kernel_size, output_dim, padding='same', activation = "relu"):
+    output = None
+    for _ in range(output_dim):
+        conv = Conv2D(filters=filters, kernel_size=kernel_size, padding=padding)(input)
+        activa = Activation(activation)(conv)
+        maxout_out = Lambda(lambda x: K.max(x, axis=-1, keepdims=True))(activa)
+        if output is not None:
+            output = concatenate([output, maxout_out], axis=-1)
+        else:
+            output = maxout_out
+    return output
+
+def MaxoutCov(input, output_dim):
+    output = None
+    for i in range(output_dim):
+        section = Lambda(lambda x:x[:,:,:,2*i:2*i+1])(input)
+        maxout_out = Lambda(lambda x: K.max(x, axis=-1, keepdims=True))(section)
+        if output is not None:
+            output = concatenate([output, maxout_out], axis=-1)
+        else:
+            output = maxout_out
+    return output
+
+class InstanceNormalization(Layer):
+    def __init__(self, axis=-1, epsilon=1e-5, **kwargs):
+        super(InstanceNormalization, self).__init__(**kwargs)
+        self.axis = axis
+        self.epsilon = epsilon
+
+    def build(self, input_shape):
+        dim = input_shape[self.axis]
+        if dim is None:
+            raise ValueError('Axis '+str(self.axis)+' of input tensor should have a defined dimension but the layer received an input with shape '+str(input_shape)+ '.')
+        shape = (dim,)
+
+        self.gamma = self.add_weight(shape=shape, name='gamma', initializer=initializers.random_normal(1.0, 0.02))
+        self.beta = self.add_weight(shape=shape, name='beta', initializer='zeros')
+        self.built = True
+
+    def call(self, inputs, training=None):
+        mean, var = tf.nn.moments(inputs, axes=[1,2], keep_dims=True)
+        return K.batch_normalization(inputs, mean, var, self.beta, self.gamma, self.epsilon)
 
 def DNCON4_with_paras(win_array,feature_1D_num,feature_2D_num,sequence_length,use_bias,hidden_type,filters,nb_layers,opt,batch_size):
     print("Setting hidden models as ",hidden_type)
@@ -361,49 +419,6 @@ def DNCON4_with_paras(win_array,feature_1D_num,feature_2D_num,sequence_length,us
     DNCON4_CNN.compile(loss="binary_crossentropy", metrics=['accuracy'], optimizer=opt)
     
     return DNCON4_CNN
-
-# def max(x):
-#     output = None
-#     for _ in range(64):
-#         conv = Conv2D(filters=4, kernel_size=(1,1), padding='same')(x)
-#         activa = Activation("relu")(conv)
-#         # maxout_out = K.max(activa, axis=-1, keepdims=True)
-#         maxout_out = K.max(activa, axis=-1, keepdims=True)
-
-#         if output is not None:
-#             output = K.concatenate([output, maxout_out], axis=-1)
-#         else:
-#             output = maxout_out
-#     return output
-# def max_output(input_shape):
-#     input_height= input_shape[1]
-#     input_width = input_shape[2]
-#     output_height = input_height
-#     output_width = input_width
-    
-#     return (input_shape[0], output_height, output_width, 64)  
-def MaxoutAct(input, filters, kernel_size, output_dim, padding='same', activation = "relu"):
-    output = None
-    for _ in range(output_dim):
-        conv = Conv2D(filters=filters, kernel_size=kernel_size, padding=padding)(input)
-        activa = Activation(activation)(conv)
-        maxout_out = Lambda(lambda x: K.max(x, axis=-1, keepdims=True))(activa)
-        if output is not None:
-            output = concatenate([output, maxout_out], axis=-1)
-        else:
-            output = maxout_out
-    return output
-
-def MaxoutCov(input, output_dim):
-    output = None
-    for i in range(output_dim):
-        section = Lambda(lambda x:x[:,:,:,2*i:2*i+1])(input)
-        maxout_out = Lambda(lambda x: K.max(x, axis=-1, keepdims=True))(section)
-        if output is not None:
-            output = concatenate([output, maxout_out], axis=-1)
-        else:
-            output = maxout_out
-    return output
 
 def DeepConv_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filters,nb_layers,opt, initializer = "he_normal", loss_function = "binary_crossentropy", weight_p=1.0, weight_n=1.0, activation = 'relu'):
     filter_sizes=win_array
@@ -892,8 +907,8 @@ def identity_Block_deep(input, filters, kernel_size, with_conv_shortcut=False,us
 
 def identity_Block_sallow_2D(input, filters, nb_row, nb_col, with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer='he_normal', dilation_rate=(1, 1)):
     x = Conv2D(filters=filters, kernel_size=(nb_row, nb_col), strides=(1,1),use_bias=use_bias, kernel_initializer=kernel_initializer, padding="same", dilation_rate=dilation_rate)(input)
-    # x = BatchNormalization(axis=-1)(x)
     x = Activation("relu")(x)
+    x = InstanceNormalization(axis=-1)(x)
     # x = Dropout(0.4)(x)
     x = Conv2D(filters=filters, kernel_size=(nb_row, nb_col), strides=(1,1),use_bias=use_bias, kernel_initializer=kernel_initializer, padding="same", dilation_rate=dilation_rate)(x)
     if with_conv_shortcut:
@@ -903,6 +918,7 @@ def identity_Block_sallow_2D(input, filters, nb_row, nb_col, with_conv_shortcut=
         elif mode=='concat':
             x = concatenate([x, shortcut], axis=-1)
         x = Activation("relu")(x)
+        x = InstanceNormalization(axis=-1)(x)
         return x
     else:
         if mode=='sum':
@@ -910,6 +926,7 @@ def identity_Block_sallow_2D(input, filters, nb_row, nb_col, with_conv_shortcut=
         elif mode=='concat':
             x = concatenate([x, input], axis=-1)
         x = Activation("relu")(x)
+        x = InstanceNormalization(axis=-1)(x)
         return x
 
 def identity_Block_deep_2D(input, filters, nb_row, nb_col, with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer='he_normal', dilation_rate=(1,1 )):
@@ -1037,6 +1054,7 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
         return _shortcut(input, residual)
 
     return f
+
 def DeepResnet_with_paras(win_array,feature_1D_num,feature_2D_num,sequence_length,use_bias,hidden_type,filters,nb_layers,opt,batch_size):
     DNCON4_1D_input_shape =(sequence_length,feature_1D_num)
     filter_sizes=win_array
@@ -1166,25 +1184,21 @@ def DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filte
         # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
         # DNCON4_2D_conv = MaxoutCov(DNCON4_2D_conv, output_dim=64)
 
-        # DNCON4_2D_conv = _conv_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
-        # for idx in range(nb_layers):
-        #     DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
-        #     DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
-        # DNCON4_2D_conv = Dropout(0.3)(DNCON4_2D_conv)
 
-        DNCON4_2D_conv = _conv_bn_relu2D(filters=64, nb_row=7, nb_col=7, strides=(1, 1))(DNCON4_2D_conv)
-        # DNCON4_2D_conv = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding="same")(DNCON4_2D_conv)
-        block = DNCON4_2D_conv
-        filters = 64
-        repetitions = [4, 4]
-        # repetitions = [3, 4, 6, 3]
-        for i, r in enumerate(repetitions):
-            block = _residual_block(basic_block, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
-            # block = _residual_block(bottleneck, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
-            filters *= 2
-        # Last activation
-        block = _bn_relu(block)
-        DNCON4_2D_conv = block
+        # ######This is original residual
+        # DNCON4_2D_conv = _conv_bn_relu2D(filters=64, nb_row=7, nb_col=7, strides=(1, 1))(DNCON4_2D_conv)
+        # block = DNCON4_2D_conv
+        # filters = 64
+        # repetitions = [4, 4]
+        # # repetitions = [3, 4, 6, 3]
+        # for i, r in enumerate(repetitions):
+        #     block = _residual_block(basic_block, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
+        #     # block = _residual_block(bottleneck, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
+        #     filters *= 2
+        # # Last activation
+        # block = _bn_relu(block)
+        # DNCON4_2D_conv = block
+
         # DNCON4_2D_conv = UpSampling2D(size=(32,32), data_format='channels_last')(block)
         # width = DNCON4_2D_conv_in.shape.as_list()[1]
         # height = DNCON4_2D_conv_in.shape.as_list()[2]
@@ -1192,27 +1206,27 @@ def DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filte
         # DNCON4_2D_conv = Lambda(lambda image: tf.image.resize_images(image, newshape, method = tf.image.ResizeMethod.BICUBIC, align_corners = True))(block)
         # DNCON4_2D_conv = UpSampling2D(size=(32,32), data_format='channels_last')(block)
         
-        # DNCON4_2D_conv = _conv_relu2D(filters=filters, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
-        # for idx in range(nb_layers):
-        #     DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
-        #     DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+        ######This is Zhiye Version residual
+        DNCON4_2D_conv = _conv_relu2D(filters=filters, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
+        for idx in range(nb_layers):
+            DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
+            # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+            DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
         # DNCON4_2D_conv = Dropout(0.3)(DNCON4_2D_conv)
-        # # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
 
-        # DNCON4_2D_conv_a1 = _conv_relu2D(filters=filters, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_in)
-        # DNCON4_2D_conv_b1 = add([DNCON4_2D_conv_a1, DNCON4_2D_conv])
+        DNCON4_2D_conv_a1 = _conv_relu2D(filters=filters, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_in)
+        DNCON4_2D_conv_b1 = add([DNCON4_2D_conv_a1, DNCON4_2D_conv])
         
-        # # DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters, nb_row=fsz,nb_col=fsz,with_conv_shortcut=True,use_bias=True, mode='concat', kernel_initializer=initializer, dilation_rate=(4,4))
-        # DNCON4_2D_conv = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
-        # for idx in range(nb_layers+2):
-        #     DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters*2, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
-        #     DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+        DNCON4_2D_conv = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
+        for idx in range(nb_layers+2):
+            DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters*2, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
+            # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+            DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
         # DNCON4_2D_conv = Dropout(0.3)(DNCON4_2D_conv)
-        # # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
 
-        # DNCON4_2D_conv_a2 = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_in)
-        # DNCON4_2D_conv_b2 = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_b1)
-        # DNCON4_2D_conv = add([DNCON4_2D_conv_a2, DNCON4_2D_conv_b2, DNCON4_2D_conv])
+        DNCON4_2D_conv_a2 = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_in)
+        DNCON4_2D_conv_b2 = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_b1)
+        DNCON4_2D_conv = add([DNCON4_2D_conv_a2, DNCON4_2D_conv_b2, DNCON4_2D_conv])
 
         DNCON4_2D_conv = _conv_bn_sigmoid2D(filters=1, nb_row=1, nb_col=1, strides=(1, 1), kernel_initializer=initializer, dilation_rate=(1, 1))(DNCON4_2D_conv)
         DNCON4_2D_convs.append(DNCON4_2D_conv)
