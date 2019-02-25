@@ -434,8 +434,6 @@ def DeepConv_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filters
     for fsz in filter_sizes:
         DNCON4_2D_conv = DNCON4_2D_input
         DNCON4_2D_conv = Dense(64)(DNCON4_2D_conv)
-        # DNCON4_2D_conv = MaxoutConv2D_Test(kernel_size=(1,1), output_dim=64, filters = 64, activation = activation)(DNCON4_2D_conv)
-        # DNCON4_2D_conv = MaxoutConv2D(kernel_size=(1,1), output_dim=64)(DNCON4_2D_conv)
         DNCON4_2D_conv = MaxoutAct(DNCON4_2D_conv, filters=4, kernel_size=(1,1), output_dim=64, padding='same', activation = "relu")
 
         # DNCON4_2D_conv = Conv2D(filters=128, kernel_size=(1,1), activation='relu', padding='same')(DNCON4_2D_conv)
@@ -445,15 +443,18 @@ def DeepConv_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filters
         # all param 645473
         for i in range(0,nb_layers):
             DNCON4_2D_conv = _conv_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1, 1))(DNCON4_2D_conv)
-            DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+            # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+            DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
         DNCON4_2D_conv = Dropout(0.4)(DNCON4_2D_conv)
         for i in range(0,nb_layers):
             DNCON4_2D_conv = _conv_relu2D(filters=filters*2, nb_row=fsz, nb_col=fsz, strides=(1, 1))(DNCON4_2D_conv)
-            DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+            # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+            DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
         DNCON4_2D_conv = Dropout(0.3)(DNCON4_2D_conv)
         for i in range(0,nb_layers):
             DNCON4_2D_conv = _conv_relu2D(filters=filters*4, nb_row=fsz, nb_col=fsz, strides=(1, 1))(DNCON4_2D_conv)
-            DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+            # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+            DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
         DNCON4_2D_conv = Dropout(0.2)(DNCON4_2D_conv)
         
         #all param 1025985
@@ -918,7 +919,6 @@ def identity_Block_sallow_2D(input, filters, nb_row, nb_col, with_conv_shortcut=
         elif mode=='concat':
             x = concatenate([x, shortcut], axis=-1)
         x = Activation("relu")(x)
-        x = InstanceNormalization(axis=-1)(x)
         return x
     else:
         if mode=='sum':
@@ -926,7 +926,6 @@ def identity_Block_sallow_2D(input, filters, nb_row, nb_col, with_conv_shortcut=
         elif mode=='concat':
             x = concatenate([x, input], axis=-1)
         x = Activation("relu")(x)
-        x = InstanceNormalization(axis=-1)(x)
         return x
 
 def identity_Block_deep_2D(input, filters, nb_row, nb_col, with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer='he_normal', dilation_rate=(1,1 )):
@@ -996,8 +995,7 @@ def _shortcut(input, residual):
                           kernel_size=(1, 1),
                           strides=(stride_width, stride_height),
                           padding="valid",
-                          kernel_initializer="he_normal",
-                          kernel_regularizer=regularizers.l2(0.0001))(input)
+                          kernel_initializer="he_normal")(input)
     return add([shortcut, residual])
 
 def _residual_block(block_function, filters, repetitions, is_first_layer=False):
@@ -1020,13 +1018,14 @@ def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=Fals
             conv1 = Conv2D(filters=filters, kernel_size=(3, 3),
                            strides=init_strides,
                            padding="same",
-                           kernel_initializer="he_normal",
-                           kernel_regularizer=regularizers.l2(1e-4))(input)
+                           kernel_initializer="he_normal")(input)
+                           # ,
+                           # kernel_regularizer=regularizers.l2(1e-4)
         else:
-            conv1 = _bn_relu_conv2D(filters=filters, nb_row=3, nb_col=3,
+            conv1 = _in_relu_conv2D(filters=filters, nb_row=3, nb_col=3,
                                   strides=init_strides)(input)
 
-        residual = _bn_relu_conv2D(filters=filters, nb_row=3, nb_col=3)(conv1)
+        residual = _in_relu_conv2D(filters=filters, nb_row=3, nb_col=3)(conv1)
         return _shortcut(input, residual)
     return f
 
@@ -1186,18 +1185,18 @@ def DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filte
 
 
         # ######This is original residual
-        # DNCON4_2D_conv = _conv_bn_relu2D(filters=64, nb_row=7, nb_col=7, strides=(1, 1))(DNCON4_2D_conv)
-        # block = DNCON4_2D_conv
-        # filters = 64
-        # repetitions = [4, 4]
-        # # repetitions = [3, 4, 6, 3]
-        # for i, r in enumerate(repetitions):
-        #     block = _residual_block(basic_block, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
-        #     # block = _residual_block(bottleneck, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
-        #     filters *= 2
-        # # Last activation
-        # block = _bn_relu(block)
-        # DNCON4_2D_conv = block
+        DNCON4_2D_conv = _conv_in_relu2D(filters=64, nb_row=7, nb_col=7, strides=(1, 1))(DNCON4_2D_conv)
+        block = DNCON4_2D_conv
+        filters = 64
+        repetitions = [2, 2, 2, 2]
+        # repetitions = [3, 4, 6, 3]
+        for i, r in enumerate(repetitions):
+            block = _residual_block(basic_block, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
+            # block = _residual_block(bottleneck, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
+            filters *= 2
+        # Last activation
+        block = _in_relu(block)
+        DNCON4_2D_conv = block
 
         # DNCON4_2D_conv = UpSampling2D(size=(32,32), data_format='channels_last')(block)
         # width = DNCON4_2D_conv_in.shape.as_list()[1]
@@ -1207,26 +1206,26 @@ def DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filte
         # DNCON4_2D_conv = UpSampling2D(size=(32,32), data_format='channels_last')(block)
         
         ######This is Zhiye Version residual
-        DNCON4_2D_conv = _conv_relu2D(filters=filters, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
-        for idx in range(nb_layers):
-            DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
-            # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
-            DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
-        # DNCON4_2D_conv = Dropout(0.3)(DNCON4_2D_conv)
+        # DNCON4_2D_conv = _conv_relu2D(filters=filters, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
+        # for idx in range(nb_layers):
+        #     DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
+        #     # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+        #     DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
+        # DNCON4_2D_conv = Dropout(0.4)(DNCON4_2D_conv)
 
-        DNCON4_2D_conv_a1 = _conv_relu2D(filters=filters, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_in)
-        DNCON4_2D_conv_b1 = add([DNCON4_2D_conv_a1, DNCON4_2D_conv])
+        # DNCON4_2D_conv_a1 = _conv_relu2D(filters=filters, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_in)
+        # DNCON4_2D_conv_b1 = add([DNCON4_2D_conv_a1, DNCON4_2D_conv])
         
-        DNCON4_2D_conv = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
-        for idx in range(nb_layers+2):
-            DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters*2, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
-            # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
-            DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
+        # DNCON4_2D_conv = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv)
+        # for idx in range(nb_layers):
+        #     DNCON4_2D_conv = identity_Block_sallow_2D(DNCON4_2D_conv, filters=filters*2, nb_row=fsz,nb_col=fsz,with_conv_shortcut=False,use_bias=True, mode='sum', kernel_initializer=initializer)
+        #     # DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)
+        #     DNCON4_2D_conv = InstanceNormalization(axis=-1)(DNCON4_2D_conv)
         # DNCON4_2D_conv = Dropout(0.3)(DNCON4_2D_conv)
 
-        DNCON4_2D_conv_a2 = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_in)
-        DNCON4_2D_conv_b2 = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_b1)
-        DNCON4_2D_conv = add([DNCON4_2D_conv_a2, DNCON4_2D_conv_b2, DNCON4_2D_conv])
+        # DNCON4_2D_conv_a2 = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_in)
+        # DNCON4_2D_conv_b2 = _conv_relu2D(filters=filters*2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer=initializer)(DNCON4_2D_conv_b1)
+        # DNCON4_2D_conv = add([DNCON4_2D_conv_a2, DNCON4_2D_conv_b2, DNCON4_2D_conv])
 
         DNCON4_2D_conv = _conv_bn_sigmoid2D(filters=1, nb_row=1, nb_col=1, strides=(1, 1), kernel_initializer=initializer, dilation_rate=(1, 1))(DNCON4_2D_conv)
         DNCON4_2D_convs.append(DNCON4_2D_conv)
@@ -1255,49 +1254,54 @@ def DeepUnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filters
     
     DNCON4_2D_convs = []
     for fsz in filter_sizes:
-        DNCON4_2D_conv_in = DNCON4_2D_input
+        DNCON4_2D_conv = DNCON4_2D_input
         # DNCON4_2D_conv_bn = BatchNormalization(axis=-1)(DNCON4_2D_conv)
-        DNCON4_2D_conv_in = Dense(64)(DNCON4_2D_conv_in)
-        # # DNCON4_2D_conv = MaxoutConv2D(kernel_size=(1,1), output_dim=64, nb_features=4)(DNCON4_2D_conv_in)
-        DNCON4_2D_conv = MaxoutAct(DNCON4_2D_conv_in, filters=4, kernel_size=(1,1), output_dim=64, padding='same', activation = "relu")
+        DNCON4_2D_conv = Dense(64)(DNCON4_2D_conv)
+        DNCON4_2D_conv = MaxoutAct(DNCON4_2D_conv, filters=4, kernel_size=(1,1), output_dim=64, padding='same', activation = "relu")
 
         conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(DNCON4_2D_conv)
+        conv1 = InstanceNormalization(axis=-1)(conv1)
         conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
+        conv1 = InstanceNormalization(axis=-1)(conv1)
         pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
         conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
+        conv2 = InstanceNormalization(axis=-1)(conv2)
         conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv2)
+        conv2 = InstanceNormalization(axis=-1)(conv2)
         pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
         conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool2)
+        conv3 = InstanceNormalization(axis=-1)(conv3)
         conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv3)
-        pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+        conv3 = InstanceNormalization(axis=-1)(conv3)
+        drop3 = Dropout(0.5)(conv3)
+        pool3 = MaxPooling2D(pool_size=(2, 2))(drop3)
+
         conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)
+        conv4 = InstanceNormalization(axis=-1)(conv4)
         conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
+        conv4 = InstanceNormalization(axis=-1)(conv4)
         drop4 = Dropout(0.5)(conv4)
-        pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
 
-        conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
-        conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
-        drop5 = Dropout(0.5)(conv5)
-
-        up6 = Conv2D(512, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(drop5))
-        merge6 = concatenate([drop4,up6], axis = 3)
-        conv6 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge6)
-        conv6 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv6)
-
-        up7 = Conv2D(256, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv6))
-        merge7 = concatenate([conv3,up7], axis = 3)
+        up7 = Conv2D(256, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(drop4))
+        merge7 = concatenate([conv3,up7], axis = -1)
         conv7 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge7)
+        conv7 = InstanceNormalization(axis=-1)(conv7)
         conv7 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv7)
+        conv7 = InstanceNormalization(axis=-1)(conv7)
 
         up8 = Conv2D(128, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv7))
-        merge8 = concatenate([conv2,up8], axis = 3)
+        merge8 = concatenate([conv2,up8], axis = -1)
         conv8 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge8)
+        conv8 = InstanceNormalization(axis=-1)(conv8)
         conv8 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
+        conv8 = InstanceNormalization(axis=-1)(conv8)
 
         up9 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv8))
-        merge9 = concatenate([conv1,up9], axis = 3)
+        merge9 = concatenate([conv1,up9], axis = -1)
         conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
+        conv9 = InstanceNormalization(axis=-1)(conv9)
         conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
+        conv9 = InstanceNormalization(axis=-1)(conv9)
         conv9 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
 
         DNCON4_2D_conv = _conv_bn_sigmoid2D(filters=1, nb_row=1, nb_col=1, strides=(1, 1), kernel_initializer=initializer, dilation_rate=(1, 1))(conv9)
@@ -1318,6 +1322,8 @@ def DeepUnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filters
     DNCON4_UNET.summary()
     return DNCON4_UNET
 
+# def DeepDNP_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filters,nb_layers,opt, initializer = "he_normal", loss_function = "binary_crossentropy", weight_p=1.0, weight_n=1.0):
+
 def block_inception_a(inputs,filters,kernel_size,use_bias=True):
     inputs_feanum = inputs.shape.as_list()[2]
 
@@ -1336,17 +1342,17 @@ def block_inception_a(inputs,filters,kernel_size,use_bias=True):
 def block_inception_a_2D(inputs,filters, nb_row, nb_col,strides=(1, 1), kernel_initializer = "he_normal"):
     inputs_feanum = inputs.shape.as_list()[3]
 
-    branch_0 = _conv_relu2D(filters=filters, nb_row = 1, nb_col = 1, strides=(1, 1), kernel_initializer = kernel_initializer)(inputs)
+    branch_0 = _conv_in_relu2D(filters=filters, nb_row = 1, nb_col = 1, strides=(1, 1), kernel_initializer = kernel_initializer)(inputs)
 
-    branch_1 = _conv_relu2D(filters=filters, nb_row = 1, nb_col = 1, strides=(1, 1), kernel_initializer = kernel_initializer)(inputs)
-    branch_1 = _conv_relu2D(filters=filters+8, nb_row = nb_row, nb_col = nb_col, strides=(1, 1), kernel_initializer = kernel_initializer)(branch_1)
+    branch_1 = _conv_in_relu2D(filters=filters, nb_row = 1, nb_col = 1, strides=(1, 1), kernel_initializer = kernel_initializer)(inputs)
+    branch_1 = _conv_in_relu2D(filters=filters+8, nb_row = nb_row, nb_col = nb_col, strides=(1, 1), kernel_initializer = kernel_initializer)(branch_1)
 
-    branch_2 = _conv_relu2D(filters=filters, nb_row = 1, nb_col = 1, strides=(1, 1), kernel_initializer = kernel_initializer)(inputs)
-    branch_2 = _conv_relu2D(filters=filters+8, nb_row = nb_row, nb_col = nb_col, strides=(1, 1), kernel_initializer = kernel_initializer)(branch_2)
-    branch_2 = _conv_relu2D(filters=filters+16, nb_row = nb_row, nb_col = nb_col, strides=(1, 1), kernel_initializer = kernel_initializer)(branch_2)
+    branch_2 = _conv_in_relu2D(filters=filters, nb_row = 1, nb_col = 1, strides=(1, 1), kernel_initializer = kernel_initializer)(inputs)
+    branch_2 = _conv_in_relu2D(filters=filters+8, nb_row = nb_row, nb_col = nb_col, strides=(1, 1), kernel_initializer = kernel_initializer)(branch_2)
+    branch_2 = _conv_in_relu2D(filters=filters+16, nb_row = nb_row, nb_col = nb_col, strides=(1, 1), kernel_initializer = kernel_initializer)(branch_2)
 
     net = concatenate([branch_0, branch_1, branch_2], axis=-1)
-    merge_branch = _conv_relu2D(filters=inputs_feanum, nb_row = 1, nb_col = 1, strides=(1, 1), kernel_initializer = kernel_initializer)(net)
+    merge_branch = _conv_in_relu2D(filters=inputs_feanum, nb_row = 1, nb_col = 1, strides=(1, 1), kernel_initializer = kernel_initializer)(net)
     outputs = add([inputs, merge_branch])
     return outputs
 
@@ -1463,25 +1469,25 @@ def DeepInception_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,fi
         DNCON4_2D_conv = DNCON4_2D_input
         DNCON4_2D_conv = Dense(64)(DNCON4_2D_conv)
         DNCON4_2D_conv = MaxoutConv2D(kernel_size=(1,1), output_dim=64, padding='same')(DNCON4_2D_conv)
-        DNCON4_2D_conv1 = _conv_bn_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv)
+        DNCON4_2D_conv1 = _conv_in_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv)
         shape1 = DNCON4_2D_conv1.shape.as_list()[3]
         ## start inception 1
-        branch_0 = _conv_bn_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv1)
-        branch_1 = _conv_bn_relu2D(filters=filters+8, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv1)
+        branch_0 = _conv_in_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv1)
+        branch_1 = _conv_in_relu2D(filters=filters+8, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv1)
         DNCON4_2D_conv2 = concatenate([branch_0, branch_1], axis=-1)
         DNCON4_2D_conv2 = Dropout(0.2)(DNCON4_2D_conv2)#0.3
 
         # shape2 = DNCON4_2D_conv2.shape.as_list()[3]
-        # DNCON4_2D_conv1 = _conv_bn_relu2D(filters=shape2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv1)
+        # DNCON4_2D_conv1 = _conv_in_relu2D(filters=shape2, nb_row=1, nb_col=1, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv1)
         # DNCON4_2D_conv2 = add([DNCON4_2D_conv1, DNCON4_2D_conv2])
 
         ## start inception 2
-        branch_0 = _conv_bn_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv2)
-        branch_0 = _conv_bn_relu2D(filters=filters+8, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(branch_0)
+        branch_0 = _conv_in_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv2)
+        branch_0 = _conv_in_relu2D(filters=filters+8, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(branch_0)
 
-        branch_1 = _conv_bn_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv2)
-        branch_1 = _conv_bn_relu2D(filters=filters+8, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(branch_1)
-        branch_1 = _conv_bn_relu2D(filters=filters+16, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(branch_1)
+        branch_1 = _conv_in_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv2)
+        branch_1 = _conv_in_relu2D(filters=filters+8, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(branch_1)
+        branch_1 = _conv_in_relu2D(filters=filters+16, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(branch_1)
 
         DNCON4_2D_conv3 = concatenate([branch_0, branch_1], axis=-1)
         DNCON4_2D_conv = Dropout(0.2)(DNCON4_2D_conv3)#0.3
@@ -1492,9 +1498,9 @@ def DeepInception_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,fi
         # DNCON4_2D_conv = add([DNCON4_2D_conv1, DNCON4_2D_conv2, DNCON4_2D_conv3])
         # 35 x 35 x 384
         # 4 x Inception-A blocks
+
         for idx in range(nb_layers):
-            DNCON4_2D_conv = block_inception_a_2D(DNCON4_2D_conv,filters,nb_row=fsz, nb_col=fsz, kernel_initializer = initializer)
-            DNCON4_2D_conv = BatchNormalization(axis=-1)(DNCON4_2D_conv)    
+            DNCON4_2D_conv = block_inception_a_2D(DNCON4_2D_conv,filters,nb_row=fsz, nb_col=fsz, kernel_initializer = initializer) 
         DNCON4_2D_conv = Dropout(0.2)(DNCON4_2D_conv)#0.3
 
         # DNCON4_2D_conv = Conv2D(filters=filters, kernel_size=(3, 3), strides=(1, 1),use_bias=use_bias, dilation_rate=(2, 2), kernel_initializer=initializer, padding="same")(DNCON4_2D_conv)

@@ -1,6 +1,6 @@
 #!/bin/bash -l
-#SBATCH -J  CNN
-#SBATCH -o CNN-%j.out
+#SBATCH -J  Inception
+#SBATCH -o Inception-%j.out
 #SBATCH --partition gpu3
 #SBATCH --nodes=1
 #SBATCH --ntasks=1         # leave at '1' unless using a MPI code
@@ -10,8 +10,7 @@
 #SBATCH --qos=normal
 #SBATCH --account=general-gpu  # investors will replace this with their account name
 #SBATCH --gres gpu:"GeForce GTX 1080 Ti":1
-
-#module load cuda/cuda-9.0
+module load cuda/cuda-9.0.176
 module load cudnn/cudnn-7.1.4-cuda-9.0.176
 export GPUARRAY_FORCE_CUDA_DRIVER_LOAD=""
 ## Activate python virtual environment
@@ -23,12 +22,8 @@ temp_dir=$(pwd)
 gloable_dir=${temp_dir%%DNCON4*}'DNCON4'
 # feature_dir=$gloable_dir/data/badri_training_benchmark/feats/
 feature_dir=$gloable_dir/data/deepcov/feats/ 
-output_dir=$gloable_dir/architecture/outputs/CNN_arch/cov_3455
+output_dir=$gloable_dir/architecture/outputs/Incep_arch/new_maxout3455
 acclog_dir=$gloable_dir/architecture/outputs/All_Validation_Acc
 printf "$gloable_dir\n"
 
-# python $gloable_dir/architecture/CNN_arch/scripts/train_deepCNN_2D_gen_tune.py 150 64 10 'nadam' '5'  30 2  $feature_dir $output_dir $acclog_dir 1 "glorot_uniform" "weighted_crossentropy" 30
-python $gloable_dir/architecture/CNN_arch/scripts/train_deepCNN_2D_gen_cov.py 150 64 2 'nadam' 5  40 1  $feature_dir $output_dir $acclog_dir 3 "glorot_uniform" "binary_crossentropy" 5 "relu"
-
-#binary_crossentropy
-#weighted_crossentropy
+python $gloable_dir/architecture/Incep_arch/scripts/train_deepIncep_2D_gen_tune.py 150 32 6 'nadam' 3 45 1  $feature_dir $output_dir $acclog_dir 1 "glorot_uniform" "binary_crossentropy" 1

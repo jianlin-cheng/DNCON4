@@ -23,8 +23,8 @@ else:
 
 print (os.path.dirname(GLOBAL_PATH))
 sys.path.insert(0, GLOBAL_PATH+'/lib/')
-from Data_loading import load_train_test_data_padding_with_interval
-from Model_training import DNCON4_1d2dconv_train_win_filter_layer_opt_fast
+from Data_loading import load_train_test_data_padding_with_interval, load_train_test_data_padding_with_interval_2D
+from Model_training import *
 
 
 inter=int(sys.argv[1]) #15
@@ -68,8 +68,8 @@ filetsize_array = list(map(int,filtsize.split("_")))
 if not os.path.exists(CV_dir):
     os.makedirs(CV_dir)
 # else:
-#     print ('File exit, quit!')
-#     sys.exit(1)
+    # print ('File exit, quit!')
+    # sys.exit(1)
 
 def chkdirs(fn):
   dn = os.path.dirname(fn)
@@ -86,25 +86,25 @@ if sysflag == 'local':
   path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train_sample120/'
   reject_fea_file =  GLOBAL_PATH+'/lib/feature_to_use.txt'
 elif sysflag == 'lewis':
-  path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train/'
+  path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train_sample120/'
   reject_fea_file =  GLOBAL_PATH+'/lib/feature_to_use_lewis.txt'
 path_of_Y         =  feature_dir
 path_of_X         = feature_dir
 Maximum_length=300 # 800 will get memory error
 
 
-train_datafile=path_of_lists + '/train.lst';
-val_datafile=path_of_lists + '/test.lst';
+train_datafile=path_of_lists + '/train.lst'
+val_datafile=path_of_lists + '/test.lst'
 
 import time
-data_all_dict_padding = load_train_test_data_padding_with_interval(train_datafile, feature_dir,inter,5000,0,dist_string, reject_fea_file)
-testdata_all_dict_padding = load_train_test_data_padding_with_interval(val_datafile, feature_dir, inter,5000,0,dist_string, reject_fea_file)
 
+data_all_dict_padding = load_train_test_data_padding_with_interval_2D(train_datafile, feature_dir,inter,5000,0,dist_string, reject_fea_file)
+testdata_all_dict_padding = load_train_test_data_padding_with_interval_2D(val_datafile, feature_dir, inter,5000,0,dist_string, reject_fea_file)  
 
 start_time = time.time()
-best_acc=DNCON4_1d2dconv_train_win_filter_layer_opt_fast(data_all_dict_padding,testdata_all_dict_padding,CV_dir, feature_dir,"DNCON4_1d2dRES",out_epoch,in_epoch,inter,5000,filetsize_array,True,'sigmoid',nb_filters,nb_layers,opt,lib_dir, batchsize,path_of_lists,path_of_Y, path_of_X,Maximum_length,dist_string, reject_fea_file)
+best_acc=DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2Donly(data_all_dict_padding,testdata_all_dict_padding,CV_dir, feature_dir,"DNCON4_2dINCEP",out_epoch,in_epoch,inter,5000,filetsize_array,True,'sigmoid',nb_filters,nb_layers,opt,lib_dir, batchsize,path_of_lists,path_of_Y, path_of_X,Maximum_length,dist_string, reject_fea_file)
 
-model_prefix = "RES"
+model_prefix = "INCEP"
 acc_history_out = "%s/%s.acc_history" % (acclog_dir, model_prefix)
 chkdirs(acc_history_out)
 if chkfiles(acc_history_out):

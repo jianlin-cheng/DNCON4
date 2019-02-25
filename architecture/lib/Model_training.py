@@ -677,7 +677,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2Donly(data_all_dict_padding
     print("Training finished, best validation acc = ",val_avg_acc_l5_best)
     return val_avg_acc_l5_best
 # dist_string = '80'interval
-def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string, batch_size, reject_fea_file='None', child_list_index=0, list_sep_flag=False, dataset_select='train'):
+def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string, batch_size, reject_fea_file='None', child_list_index=0, list_sep_flag=False, dataset_select='train', if_use_binsize=False):
     import pickle
     accept_list = []
     if reject_fea_file != 'None':
@@ -700,8 +700,6 @@ def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string,
         training_lens = list(training_dict.values())
         all_data_num = len(training_dict)
         loopcount = all_data_num // int(batch_size)
-        # print('all_num=',all_data_num)
-        # print('loopcount=',loopcount)
     else:
         training_dict = subset_pdb_dict(dataset_list, 0, 500, 5000, 'ordered') #can be random ordered
         all_training_list = list(training_dict.keys())
@@ -722,20 +720,11 @@ def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string,
         # print('\nindex=', index)
         batch_list = training_list[index * batch_size:(index + 1) * batch_size]
         batch_list_len = training_lens[index * batch_size:(index + 1) * batch_size]
-        max_pdb_lens = max(batch_list_len)
-        # max_pdb_lens = 320
-        # if max_pdb_lens <= 300:
-        #     max_pdb_lens=300
-        # elif max_pdb_lens <=300 and max_pdb_lens > 150:
-        #     max_pdb_lens=300
-        # if max_pdb_lens <= 100:
-        #     max_pdb_lens=100
-        # elif max_pdb_lens <=200 and max_pdb_lens > 100:
-        #     max_pdb_lens=200
-        # elif max_pdb_lens <=300 and max_pdb_lens > 200:
-        #     max_pdb_lens=300
-        # else:
-        #     max_pdb_lens = max(batch_list_len)
+        if if_use_binsize:
+            max_pdb_lens = 320
+        else:
+            max_pdb_lens = max(batch_list_len)
+
         data_all_dict = dict()
         batch_X=[]
         batch_Y=[]
@@ -804,7 +793,8 @@ def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string,
 def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_padding,CV_dir,feature_dir,model_prefix,
     epoch_outside,epoch_inside,epoch_rerun,interval_len,seq_end,win_array,use_bias,hidden_type,nb_filters,nb_layers,opt,
     lib_dir, batch_size_train,path_of_lists, path_of_Y, path_of_X, Maximum_length,dist_string, reject_fea_file='None',
-    initializer = "he_normal", loss_function = "categorical_crossentropy", weight_p=1.0, weight_n=1.0,  list_sep_flag=False, activation="relu"): 
+    initializer = "he_normal", loss_function = "categorical_crossentropy", weight_p=1.0, weight_n=1.0,  list_sep_flag=False,  if_use_binsize = False): 
+
 
     start=0
     end=seq_end
@@ -830,30 +820,29 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
     model_weight_out_best = "%s/model-train-weight-%s-best-val.h5" % (CV_dir,model_prefix)
     model_and_weights = "%s/model-weight-%s.h5" % (CV_dir,model_prefix)
 
-
-    if model_prefix == 'DNCON4_2dCONV':
-        # opt = RMSprop(lr=0.001, rho=0.9, epsilon=1e-06)
-        # opt = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)#0.001
-        # opt = SGD(lr=0.01, momentum=0.9, decay=0.00, nesterov=True)
-        # opt = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
-        DNCON4_CNN = DeepConv_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n, activation)
-    elif model_prefix == 'DNCON4_2dINCEP':
-        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
-        DNCON4_CNN = DeepInception_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
-    elif model_prefix == 'DNCON4_2dRES':
         # opt = Adadelta(lr=1.0, rho=0.95, epsilon=1e-6)#1
-        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
+        # opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
         # opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=False)
         # opt = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-06, decay=0.0)
         # opt = Adagrad(lr=0.01, epsilon=1e-06)
         # opt = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
         # opt = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004)
+
+    if model_prefix == 'DNCON4_2dCONV':
+        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)#0.00
+        DNCON4_CNN = DeepConv_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
+    elif model_prefix == 'DNCON4_2dINCEP':
+        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        DNCON4_CNN = DeepInception_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
+    elif model_prefix == 'DNCON4_2dRES':
+        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
         DNCON4_CNN = DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
     elif model_prefix == 'DNCON4_2dRCNN':
         opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)#0.001
-        # opt = RMSprop(lr=0.001, rho=0.9, epsilon=1e-06)
         DNCON4_CNN = DeepCovRCNN_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
+    elif model_prefix == 'DNCON4_2dUNET':
+        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)#0.001
+        DNCON4_CNN = DeepUnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
     else:
         DNCON4_CNN = DeepConv_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt)
 
@@ -932,13 +921,13 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
             print("\n############ Running epoch ", epoch)
             if epoch == 0 and rerun_flag == 0:
                 first_inepoch = 5
-                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = first_inepoch, 
-                    validation_data = generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali'), validation_steps = len(te_l))           
+                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, if_use_binsize=if_use_binsize), steps_per_epoch = len(tr_l)//batch_size_train, epochs = first_inepoch, 
+                    validation_data = generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali', if_use_binsize=if_use_binsize), validation_steps = len(te_l))           
                 train_loss_list.append(history.history['loss'][first_inepoch-1])
                 evalu_loss_list.append(history.history['val_loss'][first_inepoch-1])
             else:
-                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = 1,
-                    validation_data = generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali'), validation_steps = len(te_l))  
+                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, if_use_binsize=if_use_binsize), steps_per_epoch = len(tr_l)//batch_size_train, epochs = 1,
+                    validation_data = generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali', if_use_binsize=if_use_binsize), validation_steps = len(te_l))  
                 # history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = epoch_inside, class_weight='auto')  
                 train_loss_list.append(history.history['loss'][0])
                 evalu_loss_list.append(history.history['val_loss'][0])
@@ -974,17 +963,15 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         for key in selected_list:
             value = selected_list[key]
             p1 = {key: value}
-            Maximum_length = value
-            # Maximum_length = 320
+            if if_use_binsize:
+                Maximum_length = 320
+            else:
+                Maximum_length = value
             print(len(p1))
             if len(p1) < 1:
                 continue
             print("start predict")
             selected_list_2D = get_x_2D_from_this_list(p1, path_of_X, Maximum_length,dist_string, reject_fea_file, value)
-
-            # cov = feature_dir + '/' + key + '.cov'
-            # selected_list_2D = np.memmap(cov, dtype=np.float32, mode='r', shape=(1, 441, Maximum_length, Maximum_length))
-            # selected_list_2D = selected_list_2D.transpose(0, 2, 3, 1)
 
             print("selected_list_2D.shape: ",selected_list_2D.shape)
             print('Loading label sets..')
@@ -1057,7 +1044,10 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
                 print('saving cmap of %s\n'%(key))
                 value = selected_list[key]
                 single_dict={key:value}
-                Maximum_length = value
+                if if_use_binsize:
+                    Maximum_length = 320
+                else:
+                    Maximum_length = value
                 # print(single_dict)
                 selected_list_2D = get_x_2D_from_this_list(single_dict, path_of_X, Maximum_length, dist_string, reject_fea_file, value)
                 print("selected_list_2D.shape: ",selected_list_2D.shape)

@@ -92,7 +92,7 @@ def chkfiles(fn):
 
 dist_string = '80'
 if sysflag == 'local':
-  path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train_sample120/'
+  path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train/'
   # path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/deepcov/lists-test-train/'
   reject_fea_file =  GLOBAL_PATH+'/lib/feature_to_use_lewis.txt'
 elif sysflag == 'lewis':
