@@ -1468,7 +1468,7 @@ def DeepInception_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,fi
     for fsz in filter_sizes:
         DNCON4_2D_conv = DNCON4_2D_input
         DNCON4_2D_conv = Dense(64)(DNCON4_2D_conv)
-        DNCON4_2D_conv = MaxoutConv2D(kernel_size=(1,1), output_dim=64, padding='same')(DNCON4_2D_conv)
+        DNCON4_2D_conv = MaxoutAct(DNCON4_2D_conv, filters=4, kernel_size=(1,1), output_dim=64, padding='same', activation = "relu")
         DNCON4_2D_conv1 = _conv_in_relu2D(filters=filters, nb_row=fsz, nb_col=fsz, strides=(1,1), kernel_initializer = initializer)(DNCON4_2D_conv)
         shape1 = DNCON4_2D_conv1.shape.as_list()[3]
         ## start inception 1

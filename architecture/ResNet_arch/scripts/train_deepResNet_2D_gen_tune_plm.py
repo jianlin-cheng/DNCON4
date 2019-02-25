@@ -98,7 +98,7 @@ if sysflag == 'local':
 elif sysflag == 'lewis':
   path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train/'
   reject_fea_file =  GLOBAL_PATH+'/lib/feature_to_use_plm.txt'
-path_of_Y         =  feature_dir
+path_of_Y         =  feature_dir + '/bin_class/'
 path_of_X         = feature_dir
 Maximum_length=300 # 800 will get memory error
 
@@ -108,7 +108,7 @@ val_datafile=path_of_lists + '/test.lst'
 
 import time
 
-data_all_dict_padding = load_sample_data_2D(path_of_lists, feature_dir,inter,5000,0,dist_string, reject_fea_file)
+data_all_dict_padding = load_sample_data_2D(path_of_lists, path_of_X, path_of_Y, inter,5000,0,dist_string, reject_fea_file)
 # testdata_all_dict_padding = load_train_test_data_padding_with_interval_2D(val_datafile, feature_dir, inter,5000,0,dist_string, reject_fea_file, sample_flag=True)  
 
 start_time = time.time()

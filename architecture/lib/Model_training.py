@@ -677,7 +677,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2Donly(data_all_dict_padding
     print("Training finished, best validation acc = ",val_avg_acc_l5_best)
     return val_avg_acc_l5_best
 # dist_string = '80'interval
-def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string, batch_size, reject_fea_file='None', child_list_index=0, list_sep_flag=False, dataset_select='train', if_use_binsize=False):
+def generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep,dist_string, batch_size, reject_fea_file='None', child_list_index=0, list_sep_flag=False, dataset_select='train', if_use_binsize=False):
     import pickle
     accept_list = []
     if reject_fea_file != 'None':
@@ -732,24 +732,24 @@ def generate_data_from_file(path_of_lists, feature_dir, min_seq_sep,dist_string,
             pdb_name = batch_list[i]
             pdb_len = batch_list_len[i]
             notxt_flag = True
-            featurefile = feature_dir + '/X-' + pdb_name + '.txt'
+            featurefile = path_of_X + '/X-' + pdb_name + '.txt'
             if ((len(accept_list) == 1 and ('# cov' not in accept_list and '# plm' not in accept_list)) or 
                   (len(accept_list) == 2 and ('# cov' not in accept_list or '# plm' not in accept_list)) or (len(accept_list) > 2)):
                 notxt_flag = False
                 if not os.path.isfile(featurefile):
                     print("feature file not exists: ",featurefile, " pass!")
                     continue     
-            cov = feature_dir + '/' + pdb_name + '.cov'
+            cov = path_of_X + '/' + pdb_name + '.cov'
             if '# cov' in accept_list:
                 if not os.path.isfile(cov):
                     print("Cov Matrix file not exists: ",cov, " pass!")
                     continue        
-            plm = feature_dir + '/' + pdb_name + '.plm'
+            plm = path_of_X + '/' + pdb_name + '.plm'
             if '# plm' in accept_list:
                 if not os.path.isfile(plm):
                     print("plm matrix file not exists: ",plm, " pass!")
                     continue       
-            targetfile = feature_dir + '/Y' + str(dist_string) + '-'+ pdb_name + '.txt'
+            targetfile = path_of_Y + '/Y' + str(dist_string) + '-'+ pdb_name + '.txt'
             if not os.path.isfile(targetfile):
                     print("target file not exists: ",targetfile, " pass!")
                     continue  
@@ -877,7 +877,6 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         if weight_p <= 1:
             weight_n = 1.0 - weight_p
         loss_function = _weighted_binary_crossentropy(weight_p, weight_n)
-        # loss_function = _weighted_binary_crossentropy_shield(weight_p, weight_n, 5)
     else:
         loss_function = loss_function
     DNCON4_CNN.compile(loss=loss_function, metrics=['accuracy'], optimizer=opt)
@@ -921,20 +920,19 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
             print("\n############ Running epoch ", epoch)
             if epoch == 0 and rerun_flag == 0:
                 first_inepoch = 5
-                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, if_use_binsize=if_use_binsize), steps_per_epoch = len(tr_l)//batch_size_train, epochs = first_inepoch, 
-                    validation_data = generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali', if_use_binsize=if_use_binsize), validation_steps = len(te_l))           
+                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep, '80', batch_size_train, reject_fea_file, if_use_binsize=if_use_binsize), steps_per_epoch = len(tr_l)//batch_size_train, epochs = first_inepoch, 
+                    validation_data = generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali', if_use_binsize=if_use_binsize), validation_steps = len(te_l))           
                 train_loss_list.append(history.history['loss'][first_inepoch-1])
                 evalu_loss_list.append(history.history['val_loss'][first_inepoch-1])
             else:
-                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, if_use_binsize=if_use_binsize), steps_per_epoch = len(tr_l)//batch_size_train, epochs = 1,
-                    validation_data = generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali', if_use_binsize=if_use_binsize), validation_steps = len(te_l))  
-                # history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file), steps_per_epoch = len(tr_l)//batch_size_train, epochs = epoch_inside, class_weight='auto')  
+                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep, '80', batch_size_train, reject_fea_file, if_use_binsize=if_use_binsize), steps_per_epoch = len(tr_l)//batch_size_train, epochs = 1,
+                    validation_data = generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali', if_use_binsize=if_use_binsize), validation_steps = len(te_l))  
                 train_loss_list.append(history.history['loss'][0])
                 evalu_loss_list.append(history.history['val_loss'][0])
         else:
             for index in range(child_list_num):
                 print("\n############ Runing outside epoch %i\nProcessing list %i of %i...."%(epoch, index, child_list_num))
-                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, feature_dir, min_seq_sep, '80', batch_size_train, reject_fea_file, index, list_sep_flag=True), steps_per_epoch = 15//batch_size_train, epochs = 5)
+                history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep, '80', batch_size_train, reject_fea_file, index, list_sep_flag=True), steps_per_epoch = 15//batch_size_train, epochs = 5)
 
         DNCON4_CNN.save_weights(model_weight_out)
 

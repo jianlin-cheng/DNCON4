@@ -214,7 +214,7 @@ def load_train_test_data_padding_with_interval_2D(data_list, feature_dir,Interva
   return data_all_dict
 
 
-def load_sample_data_2D(data_list, feature_dir,Interval,seq_end, min_seq_sep,dist_string, reject_fea_file='None'):
+def load_sample_data_2D(data_list, path_of_X, path_of_Y, Interval,seq_end, min_seq_sep,dist_string, reject_fea_file='None'):
   import pickle
   data_all_dict = dict()
   print("######### Loading data\n\t",end='')
@@ -236,24 +236,24 @@ def load_sample_data_2D(data_list, feature_dir,Interval,seq_end, min_seq_sep,dis
     pdb_lens = sample_lens[i]
     print(pdb_name, "..",end='')
     
-    featurefile = feature_dir + '/X-' + pdb_name + '.txt'
+    featurefile = path_of_X + '/X-' + pdb_name + '.txt'
     if ((len(accept_list) == 1 and ('# cov' not in accept_list and '# plm' not in accept_list)) or 
           (len(accept_list) == 2 and ('# cov' not in accept_list or '# plm' not in accept_list)) or (len(accept_list) > 2)):
       notxt_flag = False
       if not os.path.isfile(featurefile):
                   print("feature file not exists: ",featurefile, " pass!")
                   continue     
-    cov = feature_dir + '/' + pdb_name + '.cov'
+    cov = path_of_X + '/' + pdb_name + '.cov'
     if '# cov' in accept_list:
       if not os.path.isfile(cov):
                   print("Cov Matrix file not exists: ",cov, " pass!")
                   continue        
-    plm = feature_dir + '/' + pdb_name + '.plm'
+    plm = path_of_X + '/' + pdb_name + '.plm'
     if '# plm' in accept_list:
       if not os.path.isfile(plm):
                   print("plm matrix file not exists: ",plm, " pass!")
                   continue       
-    targetfile = feature_dir + '/Y' + str(dist_string) + '-'+ pdb_name + '.txt'
+    targetfile = path_of_Y + '/Y' + str(dist_string) + '-'+ pdb_name + '.txt'
     if not os.path.isfile(targetfile):
                 print("target file not exists: ",targetfile, " pass!")
                 continue                                 

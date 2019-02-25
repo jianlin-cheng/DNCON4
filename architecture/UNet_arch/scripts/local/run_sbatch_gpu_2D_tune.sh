@@ -9,7 +9,7 @@ acclog_dir=$gloable_dir/architecture/outputs/All_Validation_Acc
 printf "$gloable_dir\n"
 
 #dncon2 data
-python $gloable_dir/architecture/UNet_arch/scripts/train_deepUNet_2D_gen_tune.py 320 64 2 'nadam' 5  40 1  $feature_dir $output_dir $acclog_dir 1 "glorot_uniform" "binary_crossentropy" 0.75 
+python $gloable_dir/architecture/UNet_arch/scripts/train_deepUNet_2D_gen_tune.py 320 64 2 'nadam' 5  40 1  $feature_dir $output_dir $acclog_dir 1 "glorot_uniform" "binary_crossentropy" 3
 
 # binary_crossentropy
 # VarianceScaling

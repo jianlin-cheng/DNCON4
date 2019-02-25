@@ -97,7 +97,7 @@ if sysflag == 'local':
 elif sysflag == 'lewis':
   path_of_lists = os.path.dirname(GLOBAL_PATH)+'/data/badri_training_benchmark/lists-test-train/'
   reject_fea_file =  GLOBAL_PATH+'/lib/feature_to_use_plm.txt'
-path_of_Y         =  feature_dir
+path_of_Y         =  feature_dir+'/bin_class/'
 path_of_X         = feature_dir
 Maximum_length=300 # 800 will get memory error
 
@@ -107,15 +107,15 @@ val_datafile=path_of_lists + '/test.lst'
 
 import time
 
-data_all_dict_padding = load_sample_data_2D(path_of_lists, feature_dir,inter,5000,0,dist_string, reject_fea_file)
+data_all_dict_padding = load_sample_data_2D(path_of_lists, path_of_X, path_of_Y, inter,5000,0,dist_string, reject_fea_file)
 # testdata_all_dict_padding = load_train_test_data_padding_with_interval_2D(val_datafile, feature_dir, inter,5000,0,dist_string, reject_fea_file)  
 
 start_time = time.time()
-best_acc=DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_padding,CV_dir, feature_dir,"DNCON4_2dCONV",out_epoch,in_epoch,rerun_epoch,inter,
+best_acc=DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_padding,CV_dir, feature_dir,"DNCON4_2dUNET",out_epoch,in_epoch,rerun_epoch,inter,
   5000,filetsize_array,True,'sigmoid',nb_filters,nb_layers,opt,lib_dir, batchsize,path_of_lists,path_of_Y, path_of_X,Maximum_length,dist_string, reject_fea_file,
-  initializer, loss_function, weight_p, activation = activate)
+  initializer, loss_function, weight_p, if_use_binsize = True)
 
-model_prefix = "CONV"
+model_prefix = "UNET"
 acc_history_out = "%s/%s.acc_history" % (acclog_dir, model_prefix)
 chkdirs(acc_history_out)
 if chkfiles(acc_history_out):
@@ -124,10 +124,10 @@ if chkfiles(acc_history_out):
 else:
     print ('create_acc_file!')
     with open(acc_history_out, "w") as myfile:
-        myfile.write("time\t netname\t initializer\t loss_function\t maxout_act\t weight0\t weight1\t filternum\t layernum\t kernelsize\t batchsize\t accuracy\n")
+        myfile.write("time\t netname\t initializer\t loss_function\t weight0\t weight1\t filternum\t layernum\t kernelsize\t batchsize\t accuracy\n")
 
 time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-acc_history_content = "%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %.4f\n" % (time_str, model_prefix, initializer, loss_function, activate, str(weight_p),
+acc_history_content = "%s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %s\t %.4f\n" % (time_str, model_prefix, initializer, loss_function, str(weight_p),
  str(nb_filters),str(nb_layers),str(filtsize),str(batchsize),best_acc)
 with open(acc_history_out, "a") as myfile: myfile.write(acc_history_content) 
 print("--- %s seconds ---" % (time.time() - start_time))
