@@ -18,9 +18,11 @@ dncon2: /storage/htc/bdm/DNCON4/feature/plm/dncon2_plm
 **(C) Labels**
 ```
 cullpdb: /storage/htc/bdm/DNCON4/feature/map/cullpdb_map 
+dncon2: /storage/htc/bdm/DNCON4/feature/map/dncon2_map
 where cmap is for binary contact classification
       dist_map is for 41-class classification
       real_dist_map is for real distance contact map
+      
 ```
 
 
