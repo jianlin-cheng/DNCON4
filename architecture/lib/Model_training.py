@@ -835,7 +835,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
         opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
         DNCON4_CNN = DeepInception_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
     elif model_prefix == 'DNCON4_2dRES':
-        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
+        opt = Adam(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0000)#0.001  decay=0.0
         DNCON4_CNN = DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
     elif model_prefix == 'DNCON4_2dRCNN':
         opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)#0.001
@@ -897,7 +897,6 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
     child_list_num = int(train_data_num/15)# 15 is the inter
     print('Total Number of Training dataset = ',str(len(tr_l)))
 
-    # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.0001)
     # callbacks=[reduce_lr]
     train_avg_acc_l5_best = 0 
     val_avg_acc_l5_best = 0
@@ -906,6 +905,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
     train_loss_last = 1e32
     train_loss_list = []
     evalu_loss_list = []
+    reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, min_lr=0.0001)
     for epoch in range(epoch_rerun,epoch_outside):
         if (epoch >=30 and lr_decay == False):
             print("Setting lr_decay as true")
@@ -913,6 +913,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
             opt = SGD(lr=0.001, momentum=0.9, decay=0.00, nesterov=False)
             DNCON4_CNN.load_weights(model_weight_out_best)
             DNCON4_CNN.compile(loss=loss_function, metrics=['accuracy'], optimizer=opt)
+            reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8, patience=5, min_lr=0.00005)
 
 
         # class_weight = {0:1.,1:60.}
@@ -926,7 +927,7 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
                 evalu_loss_list.append(history.history['val_loss'][first_inepoch-1])
             else:
                 history = DNCON4_CNN.fit_generator(generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep, '80', batch_size_train, reject_fea_file, if_use_binsize=if_use_binsize), steps_per_epoch = len(tr_l)//batch_size_train, epochs = 1,
-                    validation_data = generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali', if_use_binsize=if_use_binsize), validation_steps = len(te_l))  
+                    validation_data = generate_data_from_file(path_of_lists, path_of_X, path_of_Y, min_seq_sep, '80', batch_size_train, reject_fea_file, dataset_select='vali', if_use_binsize=if_use_binsize), validation_steps = len(te_l), callbacks=[reduce_lr])  
                 train_loss_list.append(history.history['loss'][0])
                 evalu_loss_list.append(history.history['val_loss'][0])
         else:
@@ -1014,16 +1015,16 @@ def DNCON4_1d2dconv_train_win_filter_layer_opt_fast_2D_generator(data_all_dict_p
 
         train_loss = history.history['loss'][0]
         # train_loss = history.history['val_loss'][0]
-        print("Train loss of epoch %i is %.6f" % (epoch, train_loss))
-        if (lr_decay and train_loss_last != 1e32):
-            current_lr = K.get_value(DNCON4_CNN.optimizer.lr)
-            if (train_loss < train_loss_last and current_lr < 0.01):
-                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 1.1)
-                print("Increasing learning rate to {} ...".format(current_lr * 1.2))
-            else:
-                K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 0.5)
-                print("Decreasing learning rate to {} ...".format(current_lr * 0.8))
-        train_loss_last = train_loss
+        # print("Train loss of epoch %i is %.6f" % (epoch, train_loss))
+        # if (lr_decay and train_loss_last != 1e32):
+        #     current_lr = K.get_value(DNCON4_CNN.optimizer.lr)
+        #     if (train_loss < train_loss_last and current_lr < 0.01):
+        #         K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 1.1)
+        #         print("Increasing learning rate to {} ...".format(current_lr * 1.2))
+        #     else:
+        #         K.set_value(DNCON4_CNN.optimizer.lr, current_lr * 0.5)
+        #         print("Decreasing learning rate to {} ...".format(current_lr * 0.8))
+        # train_loss_last = train_loss
 
 
         print('The validation accuracy is ',val_acc_history_content)
