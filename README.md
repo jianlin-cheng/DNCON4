@@ -117,7 +117,7 @@ test: 1306
 ```
 
 
-**(K) ### Generate real distance output
+**(K) ### Generate real distance output**
 ```
 cd /home/jh7x3/scratch/DNCON2_train/input-data-for-training/test-train
 sh main-Y-realDistance.sh
@@ -127,7 +127,7 @@ sh main-Y-realDistance_distribution.sh
 
 
 
-**(L) ### Generate real distance distribution [4,25] with bin 0.5 output
+**(L) ### Generate real distance distribution [4,25] with bin 0.5 output**
 ```
 cd /home/jh7x3/scratch/DNCON2_train/input-data-for-training/test-train
 sh main-Y-realDistance_distribution.sh
