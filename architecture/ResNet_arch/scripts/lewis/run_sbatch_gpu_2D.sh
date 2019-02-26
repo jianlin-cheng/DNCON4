@@ -6,10 +6,10 @@
 #SBATCH --ntasks=1         # leave at '1' unless using a MPI code
 #SBATCH --cpus-per-task=5  # cores per task
 #SBATCH --mem-per-cpu=20G  # memory per core (default is 1GB/core)
-#SBATCH --time 2-00:00     # days-hours:minutes
+#SBATCH --time 0-02:00     # days-hours:minutes
 #SBATCH --qos=normal
 #SBATCH --account=general-gpu  # investors will replace this with their account name
-#SBATCH --gres gpu:"GeForce GTX 1080 Ti":1
+#SBATCH --gres gpu:"Tesla V100-PCIE-32GB":1
 
 module load cuda/cuda-9.0.176
 module load cudnn/cudnn-7.1.4-cuda-9.0.176
@@ -33,3 +33,5 @@ python $gloable_dir/architecture/ResNet_arch/scripts/train_deepResNet_2D_gen_tun
 # lecun_normal
 # he_normal
 # RandomUniform
+
+#"GeForce GTX 1080 Ti":1

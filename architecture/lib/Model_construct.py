@@ -1015,7 +1015,7 @@ def basic_block(filters, init_strides=(1, 1), is_first_block_of_first_layer=Fals
     def f(input):
         if is_first_block_of_first_layer:
             # don't repeat bn->relu since we just did bn->relu->maxpool
-            conv1 = Conv2D(filters=filters, kernel_size=(3, 3),
+            conv1 = Conv2D(filters=filters, nb_row=3, nb_col=3,
                            strides=init_strides,
                            padding="same",
                            kernel_initializer="he_normal")(input)
@@ -1039,17 +1039,17 @@ def bottleneck(filters, init_strides=(1, 1), is_first_block_of_first_layer=False
 
         if is_first_block_of_first_layer:
             # don't repeat bn->relu since we just did bn->relu->maxpool
-            conv_1_1 = Conv2D(filters=filters, kernel_size=(1, 1),
+            conv_1_1 = Conv2D(filters=filters, nb_row=1, nb_col=1,
                               strides=init_strides,
                               padding="same",
                               kernel_initializer="he_normal",
-                              kernel_regularizer=l2(1e-4))(input)
+                              kernel_regularizer=regularizers.l2(1e-4))(input)
         else:
-            conv_1_1 = _bn_relu_conv(filters=filters, kernel_size=(1, 1),
+            conv_1_1 = _in_relu_conv2D(filters=filters, nb_row=1, nb_col=1,
                                      strides=init_strides)(input)
 
-        conv_3_3 = _bn_relu_conv(filters=filters, kernel_size=(3, 3))(conv_1_1)
-        residual = _bn_relu_conv(filters=filters * 4, kernel_size=(1, 1))(conv_3_3)
+        conv_3_3 = _in_relu_conv2D(filters=filters, nb_row=3, nb_col=3)(conv_1_1)
+        residual = _in_relu_conv2D(filters=filters * 4, nb_row=1, nb_col=1)(conv_3_3)
         return _shortcut(input, residual)
 
     return f
@@ -1188,12 +1188,12 @@ def DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,filte
         DNCON4_2D_conv = _conv_in_relu2D(filters=64, nb_row=7, nb_col=7, strides=(1, 1))(DNCON4_2D_conv)
         block = DNCON4_2D_conv
         filters = 64
-        repetitions = [2, 2, 2, 2]
-        # repetitions = [3, 4, 6, 3]
+        # repetitions = [2, 2, 2, 2]
+        repetitions = [3, 4, 6, 3]
         for i, r in enumerate(repetitions):
             block = _residual_block(basic_block, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
             # block = _residual_block(bottleneck, filters=filters, repetitions=r, is_first_layer=(i == 0))(block)
-            filters *= 2
+            # filters *= 2
         # Last activation
         block = _in_relu(block)
         DNCON4_2D_conv = block

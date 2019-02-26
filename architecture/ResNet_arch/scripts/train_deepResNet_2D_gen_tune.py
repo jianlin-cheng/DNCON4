@@ -60,7 +60,7 @@ lib_dir=GLOBAL_PATH+'/lib/'
 
 if sysflag == 'local':
   import tensorflow as tf
-  os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+  os.environ["CUDA_VISIBLE_DEVICES"] = "1"
   config = tf.ConfigProto(allow_soft_placement = True)
   tf.GPUOptions(per_process_gpu_memory_fraction = 0.99)
   config.gpu_options.allow_growth = True
