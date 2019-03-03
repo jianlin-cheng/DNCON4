@@ -80,7 +80,13 @@ for(my $i = 1; $i <= $seq_len; $i++) {
     {
       die "Warn: failed to find class for distance $atom_dist\n\n";
     }
-		print " $dist_class";
+    if($j==1)
+    {
+    	print "$dist_class";
+    }else{
+    	print " $dist_class";
+    }
+		
 	}
 	print "\n";
 }
