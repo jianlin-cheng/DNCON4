@@ -102,7 +102,7 @@ dist_string = '80'
 
 
 #path_of_lists='/storage/htc/bdm/Collaboration/Zhiye/DNCON4/data/badri_training_benchmark/lists-test-train/'
-path_of_lists='/storage/htc/bdm/tianqi/DNCON4/data/lists-test-train/';
+path_of_lists='/scratch/jh7x3/DNCON4/data/cullpdb/lists-test-train/';
 reject_fea_file = '/scratch/jh7x3/DNCON4/jie_development_packages/DNCON4_Distance_experiment/lib/feature_to_use_lewis.txt'
 
 
