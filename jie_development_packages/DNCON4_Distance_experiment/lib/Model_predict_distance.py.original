@@ -1,0 +1,442 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Feb 22 21:47:26 2017
+
+@author: Zhiye
+"""
+import sys
+import os
+
+#This may wrong sometime
+sys.path.insert(0, sys.path[0])
+from Model_construct import *
+from DNCON_lib import *
+from Model_construct import _weighted_binary_crossentropy, _weighted_categorical_crossentropy, _weighted_mean_squared_error
+
+import numpy as np
+from keras.models import model_from_json,load_model, Sequential, Model
+from keras.optimizers import Adam, Adadelta, SGD, RMSprop, Adagrad, Adamax, Nadam
+from keras.utils import CustomObjectScope
+from random import randint
+
+
+CV_dir = '/mnt/data/zhiye/Python/DNCON4/architecture_distance/outputs/RESCNN_arch/filter64_layers6_inter150_optnadam_ftsize3_batchsize1_he_normal_binary_crossentropy_3.0/'
+# CV_dir = '/mnt/data/zhiye/Python/DNCON4/architecture_distance/outputs/RESCNN_arch/filter64_layers6_inter150_optnadam_ftsize3_batchsize1_he_normal_binary_crossentropy_3.0'
+CV_dir = '/mnt/data/zhiye/Python/DNCON4/architecture_distance/outputs/RESCNN_arch/test/filter64_layers6_inter150_optnadam_ftsize3_batchsize1_he_normal_binary_crossentropy_4.0_0.7723_1230/'
+CV_dir = '/mnt/data/zhiye/Python/DNCON4/architecture/outputs/ResNet_arch/pre/filter64_layers6_inter150_optnadam_ftsize3_batchsize1_he_normal_binary_crossentropy_2.0_0.6421/'
+
+GLOABL_Path = sys.path[0].split('DNCON4')[0]+'DNCON4/'
+print("Find gloabl path :", GLOABL_Path)
+feature_dir = GLOABL_Path + '/data/badri_training_benchmark/feats/'
+###CASP13
+path_of_lists = GLOABL_Path + '/data/CASP13/lists-test-train/'
+path_of_X= GLOABL_Path + '/data/CASP13/feats/'
+path_of_Y= GLOABL_Path + '/data/CASP13/feats/'
+###DeepCOV
+# path_of_lists = GLOABL_Path+'/data/deepcov/lists-test-train/'
+# path_of_X = GLOABL_Path + '/data/deepcov/feats/'
+# path_of_Y = GLOABL_Path + '/data/deepcov/feats/'
+###DNCON2
+# path_of_lists = GLOABL_Path + '/data/badri_training_benchmark/lists-test-train/'
+# path_of_X = GLOABL_Path + '/data/badri_training_benchmark/feats/'
+# path_of_Y = GLOABL_Path + '/data/badri_training_benchmark/feats/'
+reject_fea_path = GLOABL_Path + '/architecture_distance/lib/'
+reject_fea_file = 'feature_to_use_pre.txt' #if feature list set other then will use this reject fea file
+model_name = 'DNCON4_2dRES' #'DNCON4_2dCONV' 'DNCON4_2dRES' 'RES'
+feature_list = 'other'# ['combine','other', 'ensemble']  # combine will output three map and it combine, other just output one pred
+data_list_choose = 'test'# ['train', 'test', 'all']
+only_predict_flag = True # if do not have lable set True
+Maximum_length = 750
+dist_string = "80"
+loss_function = 'binary_crossentropy'
+
+
+#This may can only used on local machine
+os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp')
+memory_gpu=[int(x.split()[2]) for x in open('tmp','r').readlines()]
+if memory_gpu == []:
+    print("System is out of GPU memory, Run on CPU")
+    os.environ['CUDA_VISIBLE_DEVICES']="0"
+else:
+    if np.max(memory_gpu) <= 3000:
+        print("System is out of GPU memory, Run on CPU")
+        os.environ['CUDA_VISIBLE_DEVICES']="7"
+        os.system('rm tmp')
+        # sys.exit(1)
+    else:
+        os.environ['CUDA_VISIBLE_DEVICES']=str(np.argmax(memory_gpu))
+        os.system('rm tmp')
+
+def chkdirs(fn):
+    dn = os.path.dirname(fn)
+    if not os.path.exists(dn): os.makedirs(dn)
+
+
+print("\n######################################\n佛祖保佑，永不迨机，永无bug，精度九十九\n######################################\n")
+
+model_out= "%s/model-train-%s.json" % (CV_dir, model_name)
+model_weight_out = "%s/model-train-weight-%s.h5" % (CV_dir, model_name)
+model_weight_epochs = "%s/model_weights/" % (CV_dir)
+model_weight_out_best = "%s/model-train-weight-%s-best-val.h5" % (CV_dir, model_name)
+
+
+# DNCON4 = DeepResnet_with_paras_2D(win_array,feature_2D_num,use_bias,hidden_type,nb_filters,nb_layers,opt,initializer,loss_function,weight_p,weight_n)
+with CustomObjectScope({'InstanceNormalization': InstanceNormalization}):
+    json_string = open(model_out).read()
+    DNCON4 = model_from_json(json_string)
+
+if os.path.exists(model_weight_out_best):
+    print("######## Loading existing weights ",model_weight_out_best)
+    DNCON4.load_weights(model_weight_out_best)
+else:
+    print("Please check the best weights\n")
+
+#predict_method has three value : bin_class, mul_class, real_dist
+predict_method = 'bin_class'
+if loss_function == 'weighted_BCE':
+    predict_method = 'bin_class'
+    path_of_Y_train = path_of_Y + '/bin_class/'
+    path_of_Y_evalu = path_of_Y + '/bin_class/'
+    if weight_p <= 1:
+        weight_n = 1.0 - weight_p
+    loss_function = _weighted_binary_crossentropy(weight_p, weight_n)
+elif loss_function == 'weighted_CCE':
+    predict_method = 'mul_class'
+    loss_function = _weighted_categorical_crossentropy(weight_p)
+elif loss_function == 'weighted_MSE':
+    predict_method = 'real_dist'
+    path_of_Y_train = path_of_Y + '/real_dist/'
+    path_of_Y_evalu = path_of_Y + '/bin_class/'
+    loss_function = _weighted_mean_squared_error(1)
+elif loss_function == 'binary_crossentropy':
+    predict_method = 'bin_class'
+    path_of_Y_train = path_of_Y + '/bin_class/'
+    path_of_Y_evalu = path_of_Y + '/bin_class/'
+    loss_function = loss_function
+else:
+    predict_method = 'real_dist'
+    path_of_Y_train = path_of_Y + '/real_dist/'
+    path_of_Y_evalu = path_of_Y + '/bin_class/'
+    loss_function = loss_function
+
+# DNCON4.compile(loss=loss_function)
+
+model_predict= "%s/pred_map/"%(CV_dir)
+chkdirs(model_predict)
+if 'combine' in feature_list:
+    model_predict_cov= "%s/pred_map/cov/"%(CV_dir)
+    model_predict_plm= "%s/pred_map/plm/"%(CV_dir)
+    model_predict_sum= "%s/pred_map/sum/"%(CV_dir)
+    chkdirs(model_predict_cov)
+    chkdirs(model_predict_plm)
+    chkdirs(model_predict_sum)
+    COV = reject_fea_path + 'feature_to_use_cov.txt'
+    PLM = reject_fea_path + 'feature_to_use_plm.txt'
+elif 'other' in feature_list:
+    OTHER = reject_fea_path + reject_fea_file
+elif 'ensemble' in feature_list:   
+    COV = reject_fea_path + 'feature_to_use_cov.txt'
+    PLM = reject_fea_path + 'feature_to_use_plm.txt'
+else:
+    print("Make sure you input the right paramters %s\n" % (feature_list))
+    sys.exit(1)
+
+tr_l = {}
+te_l = {}
+if 'train' in data_list_choose:
+    tr_l = build_dataset_dictionaries_train(path_of_lists)
+if 'test' in data_list_choose:
+    te_l = build_dataset_dictionaries_test(path_of_lists)
+if 'all' in data_list_choose:
+    tr_l = build_dataset_dictionaries_train(path_of_lists)
+    te_l = build_dataset_dictionaries_test(path_of_lists)
+all_l = te_l.copy()        
+all_l.update(tr_l)
+
+print('Total Number to predict = ',str(len(all_l)))
+
+##### running validation
+pred_history_out = "%s/predict.acc_history" % (CV_dir) 
+selected_list = subset_pdb_dict(all_l,   0, Maximum_length, 5000, 'ordered')  ## here can be optimized to automatically get maxL from selected dataset
+
+step_num = 0
+####The init of acc parameters
+out_avg_pc_l5_cov = 0.0
+out_avg_pc_l2_cov = 0.0
+out_avg_pc_1l_cov = 0.0
+out_avg_acc_l5_cov = 0.0
+out_avg_acc_l2_cov = 0.0
+out_avg_acc_1l_cov = 0.0
+out_avg_pc_l5_plm = 0.0
+out_avg_pc_l2_plm = 0.0
+out_avg_pc_1l_plm = 0.0
+out_avg_acc_l5_plm = 0.0
+out_avg_acc_l2_plm = 0.0
+out_avg_acc_1l_plm = 0.0
+out_avg_pc_l5_sum = 0.0
+out_avg_pc_l2_sum = 0.0
+out_avg_pc_1l_sum = 0.0
+out_avg_acc_l5_sum = 0.0
+out_avg_acc_l2_sum = 0.0
+out_avg_acc_1l_sum = 0.0
+out_gloable_mse = 0.0
+out_weighted_mse = 0.0
+####Predict the trainig data set
+for key in selected_list:
+    value = selected_list[key]
+    p1 = {key: value}
+    # if if_use_binsize:
+    #     Maximum_length = 320
+    # else:
+    Maximum_length = value
+    if len(p1) < 1:
+        continue
+    print("start predict %s %d" %(key, value))
+
+    #This part is for COV feature 
+    if 'combine' in feature_list:
+        selected_list_2D_cov = get_x_2D_from_this_list(p1, path_of_X, Maximum_length,dist_string, COV, value)
+        selected_list_2D_plm = get_x_2D_from_this_list(p1, path_of_X, Maximum_length,dist_string, PLM, value)
+        DNCON4_prediction_cov = DNCON4.predict([selected_list_2D_cov], batch_size= 1)   
+        DNCON4_prediction_plm = DNCON4.predict([selected_list_2D_plm], batch_size= 1)  
+
+        CMAP = DNCON4_prediction_cov.reshape(Maximum_length, Maximum_length)
+        Map_UpTrans = np.triu(CMAP, 1).T
+        Map_UandL = np.triu(CMAP)
+        real_cmap_cov = Map_UandL + Map_UpTrans
+        CMAP = DNCON4_prediction_plm.reshape(Maximum_length, Maximum_length)
+        Map_UpTrans = np.triu(CMAP, 1).T
+        Map_UandL = np.triu(CMAP)
+        real_cmap_plm = Map_UandL + Map_UpTrans
+
+        real_cmap_sum = (real_cmap_cov * 0.35 + real_cmap_plm * 0.65)/2    
+        pred_cmap = np.concatenate((real_cmap_cov.reshape(value,value,1), real_cmap_plm.reshape(value,value,1), real_cmap_sum.reshape(value,value,1)), axis=-1)
+
+        cov_cmap_file = "%s/%s.txt" % (model_predict_cov,key)
+        plm_cmap_file = "%s/%s.txt" % (model_predict_plm,key)
+        sum_cmap_file = "%s/%s.txt" % (model_predict_sum,key)
+        cmap_file = "%s/%s.npy" % (model_predict,key)
+        np.savetxt(cov_cmap_file, real_cmap_cov, fmt='%.4f')
+        np.savetxt(plm_cmap_file, real_cmap_plm, fmt='%.4f')
+        np.savetxt(sum_cmap_file, real_cmap_sum, fmt='%.4f')
+        np.save(cmap_file, pred_cmap)
+
+    if 'other' in feature_list:
+        selected_list_2D_other = get_x_2D_from_this_list(p1, path_of_X, Maximum_length,dist_string, OTHER, value)
+        if type(selected_list_2D_other) == bool:
+                continue
+        DNCON4_prediction_other = DNCON4.predict([selected_list_2D_other], batch_size= 1)    
+        CMAP = DNCON4_prediction_other.reshape(Maximum_length, Maximum_length)
+        Map_UpTrans = np.triu(CMAP, 1).T
+        Map_UandL = np.triu(CMAP)
+        real_cmap_other = Map_UandL + Map_UpTrans
+        other_cmap_file = "%s/%s.txt" % (model_predict, key)
+        np.savetxt(other_cmap_file, real_cmap_other, fmt='%.4f')
+    
+    # Predict different epoch map
+    if 'ensemble' in feature_list:
+        selected_list_2D_cov = get_x_2D_from_this_list(p1, path_of_X, Maximum_length,dist_string, COV, value)
+        selected_list_2D_plm = get_x_2D_from_this_list(p1, path_of_X, Maximum_length,dist_string, PLM, value)
+        
+        weights = os.listdir(model_weight_epochs)
+        max_cmap = np.zeros((Maximum_length, Maximum_length))
+        weight_num = 0
+        for weight in weights:
+            model_predict_epoch= "%s/pred_map/%d/"%(CV_dir, weight_num)
+            chkdirs(model_predict_epoch)
+            model_weight_out = model_weight_epochs + '/' + weight
+            weight_num += 1
+            DNCON4.load_weights(model_weight_out)
+
+            DNCON4_prediction_cov = DNCON4.predict([selected_list_2D_cov], batch_size= 1)   
+            DNCON4_prediction_plm = DNCON4.predict([selected_list_2D_plm], batch_size= 1)  
+
+            CMAP = DNCON4_prediction_cov.reshape(Maximum_length, Maximum_length)
+            Map_UpTrans = np.triu(CMAP, 1).T
+            Map_UandL = np.triu(CMAP)
+            real_cmap_cov = Map_UandL + Map_UpTrans
+            CMAP = DNCON4_prediction_plm.reshape(Maximum_length, Maximum_length)
+            Map_UpTrans = np.triu(CMAP, 1).T
+            Map_UandL = np.triu(CMAP)
+            real_cmap_plm = Map_UandL + Map_UpTrans
+
+            real_cmap_sum = (real_cmap_cov * 0.35 + real_cmap_plm * 0.65)/2
+            max_cmap += real_cmap_sum
+            sum_cmap_file = "%s/%s.txt" % (model_predict_epoch,key)
+            np.savetxt(sum_cmap_file, real_cmap_sum, fmt='%.4f')
+
+        max_cmap /= weight_num
+        sum_cmap_file = "%s/%s.txt" % (model_predict,key)
+        np.savetxt(sum_cmap_file, real_cmap_sum, fmt='%.4f')
+
+    # if just for generate predict map, stop here is fine 
+    if only_predict_flag == True:
+        continue
+
+    print('Loading label sets..')
+    # casp target
+
+    if list(key)[0] == 'T':
+        selected_list_label = get_y_from_this_list_casp(p1, path_of_Y_evalu, 0, Maximum_length, dist_string)# dist_string 80
+    else:
+        selected_list_label = get_y_from_this_list(p1, path_of_Y_evalu, 0, Maximum_length, dist_string)# dist_string 80
+    if 'combine' in feature_list:
+        DNCON4_prediction_cov = real_cmap_cov.reshape(len(p1), Maximum_length * Maximum_length)
+        DNCON4_prediction_plm = real_cmap_plm.reshape(len(p1), Maximum_length * Maximum_length)
+        DNCON4_prediction_sum = real_cmap_sum.reshape(len(p1), Maximum_length * Maximum_length)
+
+        if selected_list_label.shape[0] < 2:
+            (a, b, c,avg_pc_l5_cov,avg_pc_l2_cov,avg_pc_1l_cov,avg_acc_l5_cov,avg_acc_l2_cov,avg_acc_1l_cov) = evaluate_prediction_4(p1, DNCON4_prediction_cov, selected_list_label, 24)
+            val_acc_history_content_cov = "%s\t%i\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (key,value,'COV',avg_pc_l5_cov,avg_pc_l2_cov,avg_pc_1l_cov,avg_acc_l5_cov,avg_acc_l2_cov,avg_acc_1l_cov)
+            
+            (a, b, c,avg_pc_l5_plm,avg_pc_l2_plm,avg_pc_1l_plm,avg_acc_l5_plm,avg_acc_l2_plm,avg_acc_1l_plm) = evaluate_prediction_4(p1, DNCON4_prediction_plm, selected_list_label, 24)
+            val_acc_history_content_plm = "%s\t%i\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (key,value,'PLM',avg_pc_l5_plm,avg_pc_l2_plm,avg_pc_1l_plm,avg_acc_l5_plm,avg_acc_l2_plm,avg_acc_1l_plm)
+            
+            (a, b, c,avg_pc_l5_sum,avg_pc_l2_sum,avg_pc_1l_sum,avg_acc_l5_sum,avg_acc_l2_sum,avg_acc_1l_sum) = evaluate_prediction_4(p1, DNCON4_prediction_sum, selected_list_label, 24)
+            val_acc_history_content_sum = "%s\t%i\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (key,value,'SUM',avg_pc_l5_sum,avg_pc_l2_sum,avg_pc_1l_sum,avg_acc_l5_sum,avg_acc_l2_sum,avg_acc_1l_sum)
+        else:
+            val_acc_history_content_cov = []
+            val_acc_history_content_plm = []
+            val_acc_history_content_sum = []
+            for i in range(selected_list_label.shape[0]):
+                selected_list_label_local  = selected_list_label[i,:].reshape(1,-1) 
+
+                (a, b, c,avg_pc_l5_cov,avg_pc_l2_cov,avg_pc_1l_cov,avg_acc_l5_cov,avg_acc_l2_cov,avg_acc_1l_cov) = evaluate_prediction_4(p1, DNCON4_prediction_cov, selected_list_label_local, 24)
+                val_content_cov = "%s\t%i\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (key+'_D'+str(i),value,'COV',avg_pc_l5_cov,avg_pc_l2_cov,avg_pc_1l_cov,avg_acc_l5_cov,avg_acc_l2_cov,avg_acc_1l_cov)
+                val_acc_history_content_cov.append(val_content_cov)
+                
+                (a, b, c,avg_pc_l5_plm,avg_pc_l2_plm,avg_pc_1l_plm,avg_acc_l5_plm,avg_acc_l2_plm,avg_acc_1l_plm) = evaluate_prediction_4(p1, DNCON4_prediction_plm, selected_list_label_local, 24)
+                val_content_plm = "%s\t%i\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (key+'_D'+str(i),value,'PLM',avg_pc_l5_plm,avg_pc_l2_plm,avg_pc_1l_plm,avg_acc_l5_plm,avg_acc_l2_plm,avg_acc_1l_plm)
+                val_acc_history_content_plm.append(val_content_plm)
+                
+                (a, b, c,avg_pc_l5_sum,avg_pc_l2_sum,avg_pc_1l_sum,avg_acc_l5_sum,avg_acc_l2_sum,avg_acc_1l_sum) = evaluate_prediction_4(p1, DNCON4_prediction_sum, selected_list_label_local, 24)
+                val_content_sum = "%s\t%i\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (key+'_D'+str(i),value,'SUM',avg_pc_l5_sum,avg_pc_l2_sum,avg_pc_1l_sum,avg_acc_l5_sum,avg_acc_l2_sum,avg_acc_1l_sum)
+                val_acc_history_content_sum.append(val_content_sum)
+        
+        if type(val_acc_history_content_cov) == list:
+            for i in range(len(val_acc_history_content_cov)):
+                print('The pred accuracy is ',val_acc_history_content_cov[i])  
+                print('The pred accuracy is ',val_acc_history_content_plm[i]) 
+                print('The pred accuracy is ',val_acc_history_content_sum[i])
+        else:
+            print('The pred accuracy is ',val_acc_history_content_cov)  
+            print('The pred accuracy is ',val_acc_history_content_plm) 
+            print('The pred accuracy is ',val_acc_history_content_sum)
+
+        with open(pred_history_out, "a") as myfile:
+            # print(type(val_acc_history_content_cov))
+            if type(val_acc_history_content_cov) == list:
+                for i in range(len(val_acc_history_content_cov)):
+                    myfile.write(val_acc_history_content_cov[i])
+                    myfile.write(val_acc_history_content_plm[i])
+                    myfile.write(val_acc_history_content_sum[i])
+            else:
+                myfile.write(val_acc_history_content_cov)
+                myfile.write(val_acc_history_content_plm)
+                myfile.write(val_acc_history_content_sum)
+
+        out_avg_pc_l5_cov += avg_pc_l5_cov 
+        out_avg_pc_l2_cov += avg_pc_l2_cov 
+        out_avg_pc_1l_cov += avg_pc_1l_cov 
+        out_avg_acc_l5_cov += avg_acc_l5_cov 
+        out_avg_acc_l2_cov += avg_acc_l2_cov 
+        out_avg_acc_1l_cov += avg_acc_1l_cov 
+        out_avg_pc_l5_plm += avg_pc_l5_plm 
+        out_avg_pc_l2_plm += avg_pc_l2_plm 
+        out_avg_pc_1l_plm += avg_pc_1l_plm 
+        out_avg_acc_l5_plm += avg_acc_l5_plm 
+        out_avg_acc_l2_plm += avg_acc_l2_plm 
+        out_avg_acc_1l_plm += avg_acc_1l_plm 
+        out_avg_pc_l5_sum += avg_pc_l5_sum 
+        out_avg_pc_l2_sum += avg_pc_l2_sum 
+        out_avg_pc_1l_sum += avg_pc_1l_sum 
+        out_avg_acc_l5_sum += avg_acc_l5_sum 
+        out_avg_acc_l2_sum += avg_acc_l2_sum 
+        out_avg_acc_1l_sum += avg_acc_1l_sum 
+
+    if 'other' in feature_list:
+        DNCON4_prediction_other = real_cmap_other.reshape(len(p1), Maximum_length * Maximum_length)
+        if len(selected_list_label) < 2:
+            (a, b, c,avg_pc_l5_other,avg_pc_l2_other,avg_pc_1l_other,avg_acc_l5_other,avg_acc_l2_other,avg_acc_1l_other) = evaluate_prediction_4(p1, DNCON4_prediction_other, selected_list_label, 24)
+            val_acc_history_content_other = "%s\t%i\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (key,value,'OTHER',avg_pc_l5_other,avg_pc_l2_other,avg_pc_1l_other,avg_acc_l5_other,avg_acc_l2_other,avg_acc_1l_other)
+        else:
+            val_acc_history_content_other = []
+            for i in range(len(selected_list_label)):   
+                (a, b, c,avg_pc_l5_other,avg_pc_l2_other,avg_pc_1l_other,avg_acc_l5_other,avg_acc_l2_other,avg_acc_1l_other) = evaluate_prediction_4(p1, DNCON4_prediction_other, selected_list_label, 24)
+                val_content_other = "%s\t%i\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (key,value,'OTHER',avg_pc_l5_other,avg_pc_l2_other,avg_pc_1l_other,avg_acc_l5_other,avg_acc_l2_other,avg_acc_1l_other)
+                val_acc_history_content_other.append(val_content_other)
+        
+        print('The pred accuracy is ',val_acc_history_content_other)
+        with open(pred_history_out, "a") as myfile:
+            myfile.write(val_acc_history_content_other)
+        out_avg_pc_l5_other += avg_pc_l5_other 
+        out_avg_pc_l2_other += avg_pc_l2_other 
+        out_avg_pc_1l_other += avg_pc_1l_other 
+        out_avg_acc_l5_other += avg_acc_l5_other 
+        out_avg_acc_l2_other += avg_acc_l2_other 
+        out_avg_acc_1l_other += avg_acc_1l_other 
+
+#     global_mse = 0.0
+#     weighted_mse = 0.0
+#     if predict_method == 'real_dist':
+#         selected_list_label_dist = get_y_from_this_list(p1, path_of_Y_train, 0, Maximum_length, dist_string, lable_type = 'real')# dist_string 80
+#         global_mse, weighted_mse = evaluate_prediction_dist_4(DNCON4_prediction, selected_list_label_dist)
+#         # to binary
+#         DNCON4_prediction = DNCON4_prediction * (DNCON4_prediction <= 8) 
+
+# #### The add of acc parameters
+#     out_gloable_mse += global_mse
+#     out_weighted_mse += weighted_mse 
+    
+    step_num += 1
+
+if only_predict_flag == True:
+    print ("END, Have Fun!\n")
+else:
+    print ('step_num=', step_num)
+    #### The out avg acc parameters
+    if 'combine' in feature_list:
+        all_num = len(selected_list)
+        out_gloable_mse /= all_num
+        out_weighted_mse /= all_num
+        out_avg_pc_l5_cov /= all_num
+        out_avg_pc_l2_cov /= all_num
+        out_avg_pc_1l_cov /= all_num
+        out_avg_acc_l5_cov /= all_num
+        out_avg_acc_l2_cov /= all_num
+        out_avg_acc_1l_cov /= all_num
+        out_avg_pc_l5_plm /= all_num
+        out_avg_pc_l2_plm /= all_num
+        out_avg_pc_1l_plm /= all_num
+        out_avg_acc_l5_plm /= all_num
+        out_avg_acc_l2_plm /= all_num
+        out_avg_acc_1l_plm /= all_num
+        out_avg_pc_l5_sum /= all_num
+        out_avg_pc_l2_sum /= all_num
+        out_avg_pc_1l_sum /= all_num
+        out_avg_acc_l5_sum /= all_num
+        out_avg_acc_l2_sum /= all_num
+        out_avg_acc_1l_sum /= all_num
+
+        val_acc_history_content_cov = "%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (out_avg_pc_l5_cov,out_avg_pc_l2_cov,out_avg_pc_1l_cov,out_avg_acc_l5_cov,out_avg_acc_l2_cov,out_avg_acc_1l_cov)
+        val_acc_history_content_plm = "%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (out_avg_pc_l5_plm,out_avg_pc_l2_plm,out_avg_pc_1l_plm,out_avg_acc_l5_plm,out_avg_acc_l2_plm,out_avg_acc_1l_plm)
+        val_acc_history_content_sum = "%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (out_avg_pc_l5_sum,out_avg_pc_l2_sum,out_avg_pc_1l_sum,out_avg_acc_l5_sum,out_avg_acc_l2_sum,out_avg_acc_1l_sum)
+
+        print('The validation accuracy is ',val_acc_history_content_cov)
+        print('The validation accuracy is ',val_acc_history_content_plm)
+        print('The validation accuracy is ',val_acc_history_content_sum)
+
+    if 'other' in feature_list:
+        all_num = len(selected_list)
+        out_gloable_mse /= all_num
+        out_weighted_mse /= all_num
+        out_avg_pc_l5_other /= all_num
+        out_avg_pc_l2_other /= all_num
+        out_avg_pc_1l_other /= all_num
+        out_avg_acc_l5_other /= all_num
+        out_avg_acc_l2_other /= all_num
+        out_avg_acc_1l_other /= all_num
+
+        val_acc_history_content_other = "%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\n" % (out_avg_pc_l5_other,out_avg_pc_l2_other,out_avg_pc_1l_other,out_avg_acc_l5_other,out_avg_acc_l2_other,out_avg_acc_1l_other)
+
+        print('The validation accuracy is ',val_acc_history_content_other)
