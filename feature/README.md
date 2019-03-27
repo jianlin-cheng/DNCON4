@@ -27,7 +27,7 @@ where cmap is for binary contact classification
 
 **(D) ALN**
 ```
-CLUSTER_meta: /hhjack_hhmsearch3.sh <fasta> <out>
+CLUSTER_meta: /hhjack_hhmsearch3.sh <fasta> <out_dir>
 Example:
 cd /data/commons/DNCON4_feature/aln/src
 ./hhjack_hhmsearch3.sh /data/commons/DNCON4_feature/aln/sample/T0953s2.fasta /data/commons/DNCON4_feature/aln/sample/T0953s2
